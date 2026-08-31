@@ -95,22 +95,6 @@ services:
     networks:
       - thenexopp_net
 
-  nginx:
-    image: nginx:alpine
-    container_name: thenexopp_nginx
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-    depends_on:
-      - backend
-      - admin_portal
-    networks:
-      - thenexopp_net
-
 networks:
   thenexopp_net:
     driver: bridge
