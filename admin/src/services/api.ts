@@ -21,8 +21,8 @@ api.interceptors.request.use((config) => {
 
 export const AdminApiService = {
   // Authentication
-  async login(mobileNumber: string, otp: string) {
-    const res = await api.post('/auth/verify-otp', { mobileNumber, otp, deviceId: 'Admin-Web-Portal' });
+  async login(username: string, password: string) {
+    const res = await api.post('/auth/admin/login', { username, password });
     if (res.data.success) {
       localStorage.setItem('admin_token', res.data.data.accessToken);
     }

@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, KeyRound, Phone } from 'lucide-react';
+import { Shield, User, Lock } from 'lucide-react';
 import { AdminApiService } from '../services/api';
 
 export const Login: React.FC = () => {
-  const [mobileNumber, setMobileNumber] = useState('9876543210');
-  const [otp, setOtp] = useState('123456');
+  const [username, setUsername] = useState('admin');
+  const [password, setPassword] = useState('thenexopp_admin_2026');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -16,10 +16,10 @@ export const Login: React.FC = () => {
     setError('');
 
     try {
-      await AdminApiService.login(mobileNumber, otp);
+      await AdminApiService.login(username, password);
       navigate('/');
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please check credentials.');
+      setError(err.response?.data?.message || err.message || 'Login failed. Invalid credentials.');
     } finally {
       setLoading(false);
     }
@@ -37,37 +37,37 @@ export const Login: React.FC = () => {
         </div>
 
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-xl text-sm font-medium">
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-xl text-sm font-medium text-center">
             {error}
           </div>
         )}
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-1">Admin Mobile Number</label>
+            <label className="block text-xs font-semibold text-slate-400 mb-1">Admin Username</label>
             <div className="relative">
-              <Phone className="absolute left-3 top-3 h-5 w-5 text-slate-500" />
+              <User className="absolute left-3 top-3 h-5 w-5 text-slate-500" />
               <input
                 type="text"
-                value={mobileNumber}
-                onChange={(e) => setMobileNumber(e.target.value)}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
-                placeholder="9876543210"
+                placeholder="Enter admin username"
                 required
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-1">OTP Verification Code</label>
+            <label className="block text-xs font-semibold text-slate-400 mb-1">Admin Password</label>
             <div className="relative">
-              <KeyRound className="absolute left-3 top-3 h-5 w-5 text-slate-500" />
+              <Lock className="absolute left-3 top-3 h-5 w-5 text-slate-500" />
               <input
-                type="text"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
-                placeholder="123456"
+                placeholder="Enter admin password"
                 required
               />
             </div>
@@ -76,14 +76,14 @@ export const Login: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-emerald-500 hover:bg-emerald-600 font-semibold py-3 rounded-xl text-white shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50"
+            className="w-full bg-emerald-500 hover:bg-emerald-600 font-semibold py-3 rounded-xl text-white shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50 mt-2"
           >
             {loading ? 'Authenticating...' : 'Sign In to Admin Portal'}
           </button>
         </form>
 
         <div className="text-center text-xs text-slate-500 pt-2 border-t border-slate-800">
-          Protected by AES-256 Encryption & JWT Authorization
+          Protected by AES-256 Encryption & Direct Credential Access
         </div>
       </div>
     </div>

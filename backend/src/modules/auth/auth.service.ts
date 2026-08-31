@@ -172,6 +172,53 @@ export class AuthService {
     };
   }
 
+  async adminLogin(username: string, password: string) {
+    const adminUsername = this.configService.get<string>('ADMIN_USERNAME', 'admin');
+    const adminPassword = this.configService.get<string>('ADMIN_PASSWORD', 'thenexopp_admin_2026');
+
+    if (username.trim() !== adminUsername || password !== adminPassword) {
+      throw new UnauthorizedException('Invalid Admin Username or Password');
+    }
+
+    // Find or create Admin User entity
+    let user = await this.userRepository.findOne({
+      where: { role: UserRole.ADMIN },
+    });
+
+    if (!user) {
+      user = this.userRepository.create({
+        mobileNumber: '9876543210',
+        role: UserRole.ADMIN,
+        isActive: true,
+      });
+      user = await this.userRepository.save(user);
+    }
+
+    const payload = {
+      sub: user.id,
+      role: UserRole.ADMIN,
+      username: adminUsername,
+    };
+
+    const accessToken = this.jwtService.sign(payload, {
+      secret: this.configService.get('JWT_SECRET', 'tnx_access_secret_super_secure_key_987654321_2026_prod'),
+      expiresIn: this.configService.get('JWT_EXPIRATION', '24h'),
+    });
+
+    return {
+      success: true,
+      message: 'Admin login successful',
+      data: {
+        accessToken,
+        user: {
+          id: user.id,
+          username: adminUsername,
+          role: UserRole.ADMIN,
+        },
+      },
+    };
+  }
+
   async logout(userId: string, refreshToken?: string) {
     if (refreshToken) {
       const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
