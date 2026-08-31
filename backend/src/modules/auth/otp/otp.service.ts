@@ -48,10 +48,9 @@ export class OtpService {
       );
     }
 
-    // Generate secure 6-digit OTP
-    const otp = process.env.NODE_ENV === 'production' 
-      ? Math.floor(100000 + Math.random() * 900000).toString()
-      : '123456'; // Default fixed OTP for dev testing convenience if specified, or random
+    // Always generate secure real 6-digit random OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    this.logger.log(`Generated OTP for ${cleanMobile.slice(-4)}: ${otp}`);
 
     const expirySeconds = Number(this.configService.get('OTP_EXPIRY_SECONDS', 300));
     const cooldownSeconds = Number(this.configService.get('OTP_RESEND_COOLDOWN_SECONDS', 60));
