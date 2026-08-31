@@ -72,6 +72,12 @@ services:
       JWT_SECRET: ${JWT_SECRET:-tnx_access_secret_super_secure_key_987654321_2026_prod}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-tnx_refresh_secret_super_secure_key_123456789_2026_prod}
       AES_ENCRYPTION_KEY: ${AES_ENCRYPTION_KEY:-32_bytes_long_secret_encryption_key_2026!!}
+      OTP_PROVIDER: ${OTP_PROVIDER:-MSG91}
+      MSG91_AUTH_KEY: ${MSG91_AUTH_KEY:-557093Aca5G41bF6a7d8d93P1}
+      MSG91_TEMPLATE_ID: ${MSG91_TEMPLATE_ID:-6a95648afdf721447f020ac2}
+      OTP_SENDER_ID: ${OTP_SENDER_ID:-THNXPP}
+      OTP_EXPIRY_SECONDS: ${OTP_EXPIRY_SECONDS:-300}
+      OTP_RESEND_COOLDOWN_SECONDS: ${OTP_RESEND_COOLDOWN_SECONDS:-60}
     ports:
       - "3000:3000"
     depends_on:
