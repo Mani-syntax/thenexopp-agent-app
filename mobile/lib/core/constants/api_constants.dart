@@ -1,7 +1,7 @@
 class ApiConstants {
-  // Base URLs (Configurable for local dev / staging / KVM2 VPS production)
-  static const String baseUrl = 'http://10.0.2.2:3000/api/v1'; // Android emulator localhost alias
-  static const String webSocketUrl = 'http://10.0.2.2:3000/ws';
+  // Base URLs (Points to live production KVM2 VPS)
+  static const String baseUrl = 'https://api.thenexopp.com/api/v1';
+  static const String webSocketUrl = 'https://api.thenexopp.com/ws';
 
   // Production fallback domain
   static const String prodBaseUrl = 'https://api.thenexopp.com/api/v1';
