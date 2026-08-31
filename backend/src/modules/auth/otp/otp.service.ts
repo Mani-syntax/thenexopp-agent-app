@@ -62,7 +62,14 @@ export class OtpService {
       resendCooldown: now + cooldownSeconds * 1000,
     });
 
-    await this.provider.sendOtp(cleanMobile, otp);
+    try {
+      const dispatched = await this.provider.sendOtp(cleanMobile, otp);
+      if (!dispatched) {
+        this.logger.warn(`MSG91 SMS dispatch returned false for ${cleanMobile.slice(-4)}. OTP stored in memory: ${otp}`);
+      }
+    } catch (err) {
+      this.logger.error(`Error attempting to dispatch SMS: ${err.message}. OTP stored in memory: ${otp}`);
+    }
 
     return {
       success: true,

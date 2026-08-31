@@ -38,8 +38,9 @@ export class Msg91OtpProvider implements IOtpProvider {
         },
       );
 
+      this.logger.log(`MSG91 Response [${response.status}]: ${JSON.stringify(response.data)}`);
+
       if (response.data && (response.data.type === 'success' || response.status === 200)) {
-        this.logger.log(`MSG91 OTP dispatched successfully to ${formattedMobile.slice(-4)}`);
         return true;
       } else {
         this.logger.error(`MSG91 API error response: ${JSON.stringify(response.data)}`);
