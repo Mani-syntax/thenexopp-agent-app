@@ -72,6 +72,8 @@ services:
       JWT_SECRET: ${JWT_SECRET:-tnx_access_secret_super_secure_key_987654321_2026_prod}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-tnx_refresh_secret_super_secure_key_123456789_2026_prod}
       AES_ENCRYPTION_KEY: ${AES_ENCRYPTION_KEY:-32_bytes_long_secret_encryption_key_2026!!}
+    ports:
+      - "3000:3000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -88,6 +90,8 @@ services:
       dockerfile: Dockerfile
     container_name: thenexopp_admin_portal
     restart: always
+    ports:
+      - "3001:80"
     networks:
       - thenexopp_net
 
