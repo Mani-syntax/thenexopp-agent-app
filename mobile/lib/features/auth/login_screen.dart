@@ -28,7 +28,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _isLoading = false);
 
     if (success && mounted) {
-      context.push('/otp');
+      context.go('/otp');
     } else if (mounted) {
       final error = ref.read(authProvider).errorMessage ?? 'Unable to send OTP. Try again.';
       ScaffoldMessenger.of(context).showSnackBar(
