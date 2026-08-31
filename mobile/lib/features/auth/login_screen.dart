@@ -71,7 +71,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     labelText: 'Mobile Number',
                     prefixIcon: Icon(Icons.phone_android_rounded, color: AppColors.primaryNavy),
                     prefixText: '+91 ',
-                    hintText: '9876543210',
+                    hintText: 'Enter 10 digit mobile number',
                     counterText: '',
                   ),
                   validator: (value) {
