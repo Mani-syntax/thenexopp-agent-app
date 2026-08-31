@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import 'otp_verification_screen.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/human_agent_logo.dart';
 import '../../shared/providers/auth_provider.dart';
@@ -21,18 +21,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
 
-    final success = await ref
+    await ref
         .read(authProvider.notifier)
         .sendOtp(_mobileController.text.trim());
 
     setState(() => _isLoading = false);
 
-    if (success && mounted) {
-      context.go('/otp');
-    } else if (mounted) {
-      final error = ref.read(authProvider).errorMessage ?? 'Unable to send OTP. Try again.';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error), backgroundColor: AppColors.statusError),
+    if (mounted) {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (context) => const OtpVerificationScreen()),
       );
     }
   }
