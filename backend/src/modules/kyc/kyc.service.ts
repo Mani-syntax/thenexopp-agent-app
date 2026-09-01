@@ -5,6 +5,7 @@ import { KycDocumentEntity, KycStatus } from '../../database/entities/kyc-docume
 import { AgentEntity, AgentStatus } from '../../database/entities/agent.entity';
 import { CryptoUtil } from '../../common/utils/crypto.util';
 import { SubmitKycDto } from './dto/submit-kyc.dto';
+import { AgentWebSocketGateway } from '../websocket/agent-websocket.gateway';
 
 @Injectable()
 export class KycService {
@@ -15,6 +16,7 @@ export class KycService {
     private readonly kycRepository: Repository<KycDocumentEntity>,
     @InjectRepository(AgentEntity)
     private readonly agentRepository: Repository<AgentEntity>,
+    private readonly wsGateway: AgentWebSocketGateway,
   ) {}
 
   async getKycDetails(userId: string) {
@@ -102,6 +104,12 @@ export class KycService {
       agent.status = AgentStatus.BANK_DETAILS_INCOMPLETE;
       await this.agentRepository.save(agent);
     }
+
+    // Real-time broadcast to Admin Portal
+    this.wsGateway.emitToAdmin('kyc.status.updated', {
+      agentId: agent.id,
+      status: kyc.status,
+    });
 
     return this.getKycDetails(userId);
   }

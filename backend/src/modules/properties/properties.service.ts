@@ -6,6 +6,7 @@ import { PropertyImageEntity } from '../../database/entities/property-image.enti
 import { AgentEntity, AgentStatus } from '../../database/entities/agent.entity';
 import { CreatePropertyDto } from './dto/create-property.dto';
 import { UploadsService, BucketType } from '../uploads/uploads.service';
+import { AgentWebSocketGateway } from '../websocket/agent-websocket.gateway';
 
 @Injectable()
 export class PropertiesService {
@@ -19,6 +20,7 @@ export class PropertiesService {
     @InjectRepository(AgentEntity)
     private readonly agentRepository: Repository<AgentEntity>,
     private readonly uploadsService: UploadsService,
+    private readonly wsGateway: AgentWebSocketGateway,
   ) {}
 
   async getPropertiesForAgent(userId: string, status?: PropertyStatus) {
@@ -150,6 +152,13 @@ export class PropertiesService {
       await this.imageRepository.save(imageEntities);
     }
 
+    // Real-time broadcast to Admin Portal
+    this.wsGateway.emitToAdmin('property.status.updated', {
+      propertyId: savedProperty.id,
+      agentId: agent.id,
+      status: savedProperty.status,
+    });
+
     return this.getPropertyById(userId, savedProperty.id);
   }
 
@@ -163,6 +172,13 @@ export class PropertiesService {
     prop.status = PropertyStatus.SUBMITTED;
     prop.submittedAt = new Date();
     await this.propertyRepository.save(prop);
+
+    // Real-time broadcast to Admin Portal
+    this.wsGateway.emitToAdmin('property.status.updated', {
+      propertyId: prop.id,
+      agentId: agent.id,
+      status: prop.status,
+    });
 
     return this.getPropertyById(userId, propertyId);
   }
