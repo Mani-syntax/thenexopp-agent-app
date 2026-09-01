@@ -60,12 +60,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<bool> sendOtp(String mobileNumber) async {
-    state = state.copyWith(mobileNumber: mobileNumber);
+    state = state.copyWith(mobileNumber: mobileNumber, errorMessage: null);
     try {
       final dio = _ref.read(dioClientProvider).dio;
       await dio.post(ApiConstants.sendOtp, data: {'mobileNumber': mobileNumber});
-    } catch (_) {}
-    return true;
+      return true;
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to send OTP. Please check your network connection.');
+      return false;
+    }
   }
 
   Future<bool> verifyOtp(String mobileNumber, String otp) async {

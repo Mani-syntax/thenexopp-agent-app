@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, User, Lock } from 'lucide-react';
-import { AdminApiService } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 export const Login: React.FC = () => {
   const [username, setUsername] = useState('admin');
@@ -9,6 +9,7 @@ export const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,7 +17,7 @@ export const Login: React.FC = () => {
     setError('');
 
     try {
-      await AdminApiService.login(username, password);
+      await login(username, password);
       navigate('/');
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || 'Login failed. Invalid credentials.');

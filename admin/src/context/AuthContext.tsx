@@ -6,7 +6,7 @@ interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   socketConnected: boolean;
-  login: (mobileNumber: string, otp: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -34,9 +34,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [token]);
 
-  const login = async (mobileNumber: string, otp: string) => {
-    const res = await AdminApiService.login(mobileNumber, otp);
-    if (res.success && res.data.accessToken) {
+  const login = async (username: string, password: string) => {
+    const res = await AdminApiService.login(username, password);
+    if (res.success && res.data?.accessToken) {
       const newToken = res.data.accessToken;
       setToken(newToken);
       localStorage.setItem('admin_token', newToken);
