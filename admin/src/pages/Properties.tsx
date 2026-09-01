@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AdminApiService } from '../services/api';
-import { PropertyListing, PropertyStatus } from '../types';
+import { PropertyListing, PropertyStatus, AgentSummary } from '../types';
 import {
   Building2,
   CheckCircle2,
@@ -20,11 +21,17 @@ import {
   LayoutGrid,
   List,
   RefreshCw,
+  X,
 } from 'lucide-react';
 import { Modal } from '../components/Modal';
 
 export const Properties: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialAgentId = searchParams.get('agentId') || '';
+
   const [properties, setProperties] = useState<PropertyListing[]>([]);
+  const [agents, setAgents] = useState<AgentSummary[]>([]);
+  const [selectedAgentId, setSelectedAgentId] = useState<string>(initialAgentId);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [dateFilter, setDateFilter] = useState<string>('ALL');
@@ -45,8 +52,28 @@ export const Properties: React.FC = () => {
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
   useEffect(() => {
+    fetchAgents();
+  }, []);
+
+  useEffect(() => {
+    const urlAgent = searchParams.get('agentId') || '';
+    if (urlAgent !== selectedAgentId) {
+      setSelectedAgentId(urlAgent);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
     fetchProperties();
-  }, [filterStatus, dateFilter, startDate, endDate]);
+  }, [filterStatus, dateFilter, startDate, endDate, selectedAgentId]);
+
+  const fetchAgents = async () => {
+    try {
+      const res = await AdminApiService.getAgents();
+      if (res.success) {
+        setAgents(res.data);
+      }
+    } catch (_) {}
+  };
 
   const getDateRange = () => {
     if (dateFilter === 'TODAY') {
@@ -79,6 +106,7 @@ export const Properties: React.FC = () => {
       const statusParam = filterStatus === 'ALL' ? undefined : (filterStatus as PropertyStatus);
       const res = await AdminApiService.getProperties({
         status: statusParam,
+        agentId: selectedAgentId || undefined,
         startDate: range.start,
         endDate: range.end,
         search: search.trim() || undefined,
@@ -248,8 +276,34 @@ export const Properties: React.FC = () => {
             ))}
           </div>
 
-          {/* Date Filter Dropdown & Custom Range */}
+          {/* Filters: Date & Agent Dropdowns */}
           <div className="flex flex-wrap items-center gap-2">
+            {/* Agent Selector Dropdown */}
+            <div className="flex items-center space-x-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-700">
+              <User className="h-3.5 w-3.5 text-slate-400" />
+              <select
+                value={selectedAgentId}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSelectedAgentId(val);
+                  if (val) {
+                    setSearchParams({ agentId: val });
+                  } else {
+                    setSearchParams({});
+                  }
+                }}
+                className="bg-transparent font-semibold text-slate-900 focus:outline-none cursor-pointer max-w-[180px] truncate"
+              >
+                <option value="">All Agents</option>
+                {agents.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.fullName || 'Unfilled'} (+91 {a.mobileNumber})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Date Filter Dropdown */}
             <div className="flex items-center space-x-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-700">
               <Calendar className="h-3.5 w-3.5 text-slate-400" />
               <select
@@ -285,6 +339,31 @@ export const Properties: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* Selected Agent Pill Banner */}
+        {selectedAgentId && (
+          <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 px-4 py-2 rounded-xl text-xs">
+            <div className="flex items-center space-x-2 text-emerald-900 font-semibold">
+              <Building2 className="h-4 w-4 text-emerald-600" />
+              <span>
+                Filtering listings by Agent:{' '}
+                <strong className="text-emerald-950 font-bold">
+                  {agents.find((a) => a.id === selectedAgentId)?.fullName || selectedAgentId}
+                </strong>
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                setSelectedAgentId('');
+                setSearchParams({});
+              }}
+              className="text-emerald-700 hover:text-emerald-950 p-1 rounded-lg flex items-center space-x-1 font-bold"
+            >
+              <X className="h-3.5 w-3.5" />
+              <span>Clear Filter</span>
+            </button>
+          </div>
+        )}
 
         {/* Search Bar */}
         <form onSubmit={handleSearchSubmit} className="relative">

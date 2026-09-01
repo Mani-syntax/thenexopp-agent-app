@@ -1,11 +1,28 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AdminApiService } from '../services/api';
-import { AgentSummary, AgentStatus } from '../types';
-import { CheckCircle2, AlertTriangle, Search, Radio, RefreshCw, XCircle } from 'lucide-react';
+import { AgentSummary, AgentStatus, PropertyListing } from '../types';
+import {
+  CheckCircle2,
+  AlertTriangle,
+  Search,
+  Radio,
+  RefreshCw,
+  XCircle,
+  Building2,
+  ExternalLink,
+  MapPin,
+  Clock,
+  Layers,
+  Phone,
+  Eye,
+  Layers3,
+} from 'lucide-react';
 import { adminSocket } from '../services/websocket';
 import { Modal } from '../components/Modal';
 
 export const Agents: React.FC = () => {
+  const navigate = useNavigate();
   const [agents, setAgents] = useState<AgentSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
@@ -16,6 +33,11 @@ export const Agents: React.FC = () => {
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [pendingStatus, setPendingStatus] = useState<AgentStatus | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
+
+  // Agent Listings Modal State
+  const [selectedAgentForListings, setSelectedAgentForListings] = useState<AgentSummary | null>(null);
+  const [agentProperties, setAgentProperties] = useState<PropertyListing[]>([]);
+  const [loadingAgentProperties, setLoadingAgentProperties] = useState(false);
 
   useEffect(() => {
     fetchAgents();
@@ -67,6 +89,32 @@ export const Agents: React.FC = () => {
     }
   };
 
+  // Open Agent Listings
+  const handleOpenAgentListings = async (agent: AgentSummary) => {
+    setSelectedAgentForListings(agent);
+    setLoadingAgentProperties(true);
+    try {
+      const res = await AdminApiService.getProperties({ agentId: agent.id });
+      if (res.success) {
+        setAgentProperties(res.data);
+      }
+    } catch (_) {}
+    setLoadingAgentProperties(false);
+  };
+
+  const handleReviewPropertyFromModal = async (propertyId: string, approve: boolean) => {
+    const reason = !approve ? prompt('Enter rejection reason:') || 'Property criteria not met' : undefined;
+    try {
+      await AdminApiService.reviewProperty(propertyId, approve, reason);
+      if (selectedAgentForListings) {
+        handleOpenAgentListings(selectedAgentForListings);
+      }
+      fetchAgents();
+    } catch (e: any) {
+      alert(e.message || 'Property review action failed');
+    }
+  };
+
   const filteredAgents = agents.filter((a) => {
     const nameMatch = (a.fullName || '').toLowerCase().includes(search.toLowerCase());
     const phoneMatch = (a.mobileNumber || '').includes(search);
@@ -84,7 +132,9 @@ export const Agents: React.FC = () => {
               <span>Live Socket Stream</span>
             </span>
           </div>
-          <p className="text-slate-500 text-sm mt-1">Manage onboarding approvals, status transitions, and agent state in real-time</p>
+          <p className="text-slate-500 text-sm mt-1">
+            Click any agent to inspect their full property portfolio, performance stats, and payout history
+          </p>
         </div>
 
         <div className="flex items-center space-x-3">
@@ -145,14 +195,20 @@ export const Agents: React.FC = () => {
               </tr>
             ) : (
               filteredAgents.map((agent) => (
-                <tr key={agent.id} className="hover:bg-slate-50 transition-colors">
+                <tr
+                  key={agent.id}
+                  className="hover:bg-slate-50 transition-colors cursor-pointer group"
+                  onClick={() => handleOpenAgentListings(agent)}
+                >
                   <td className="p-4">
                     <div className="flex items-center space-x-3">
-                      <div className="h-9 w-9 rounded-xl bg-slate-100 text-slate-700 font-extrabold flex items-center justify-center text-xs">
+                      <div className="h-9 w-9 rounded-xl bg-slate-100 group-hover:bg-emerald-100 group-hover:text-emerald-800 text-slate-700 font-extrabold flex items-center justify-center text-xs transition-colors">
                         {agent.fullName ? agent.fullName.charAt(0).toUpperCase() : 'A'}
                       </div>
                       <div>
-                        <span className="font-bold text-slate-900 block">{agent.fullName || 'Unfilled Profile'}</span>
+                        <span className="font-bold text-slate-900 group-hover:text-emerald-700 block transition-colors">
+                          {agent.fullName || 'Unfilled Profile'}
+                        </span>
                         <span className="text-xs text-slate-400">ID: {agent.id.substring(0, 8)}...</span>
                       </div>
                     </div>
@@ -163,9 +219,16 @@ export const Agents: React.FC = () => {
                   </td>
                   <td className="p-4">
                     <div className="flex items-center space-x-2">
-                      <span className="font-extrabold text-slate-900 text-sm">
-                        {agent.totalListings || 0} Total
-                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenAgentListings(agent);
+                        }}
+                        className="font-extrabold text-slate-900 text-sm hover:underline flex items-center space-x-1"
+                      >
+                        <Building2 className="h-3.5 w-3.5 text-emerald-600" />
+                        <span>{agent.totalListings || 0} Total</span>
+                      </button>
                       <span className="text-slate-300">•</span>
                       <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200" title="Accepted / Approved">
                         {agent.acceptedListings || 0} Accepted
@@ -206,7 +269,15 @@ export const Agents: React.FC = () => {
                       {agent.status}
                     </span>
                   </td>
-                  <td className="p-4 text-right space-x-2">
+                  <td className="p-4 text-right space-x-2" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => handleOpenAgentListings(agent)}
+                      className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg text-xs transition-colors inline-flex items-center space-x-1"
+                      title="View all properties by this agent"
+                    >
+                      <Building2 className="h-3 w-3" />
+                      <span>Listings</span>
+                    </button>
                     {agent.status !== 'APPROVED' && (
                       <button
                         onClick={() => handleAction(agent.id, 'APPROVED')}
@@ -230,6 +301,154 @@ export const Agents: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Selected Agent Listings Modal */}
+      {selectedAgentForListings && (
+        <Modal
+          isOpen={!!selectedAgentForListings}
+          onClose={() => setSelectedAgentForListings(null)}
+          title={`Properties Listed by ${selectedAgentForListings.fullName || 'Agent'}`}
+        >
+          <div className="space-y-6">
+            {/* Agent Summary Banner */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center space-x-3">
+                <div className="h-12 w-12 rounded-2xl bg-emerald-600 text-white font-extrabold flex items-center justify-center text-lg shadow-sm">
+                  {selectedAgentForListings.fullName ? selectedAgentForListings.fullName.charAt(0).toUpperCase() : 'A'}
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-slate-900">{selectedAgentForListings.fullName || 'Agent Partner'}</h3>
+                  <div className="text-xs text-slate-500 flex items-center space-x-2 mt-0.5">
+                    <span>+91 {selectedAgentForListings.mobileNumber}</span>
+                    <span>•</span>
+                    <span>{selectedAgentForListings.areaLocation || 'Bangalore'}</span>
+                    <span>•</span>
+                    <span className="font-bold text-emerald-700">₹{Number(selectedAgentForListings.totalPaid || 0).toLocaleString('en-IN')} Paid</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => {
+                    navigate(`/properties?agentId=${selectedAgentForListings.id}`);
+                  }}
+                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold flex items-center space-x-1.5 shadow-sm transition-colors"
+                >
+                  <span>Open in Property Page</span>
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Listings Grid */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-bold text-sm text-slate-900">
+                  Agent Listings Catalog ({agentProperties.length})
+                </h4>
+                <div className="text-xs font-semibold text-slate-500 space-x-2">
+                  <span className="text-emerald-700">{agentProperties.filter((p) => p.status === 'APPROVED').length} Approved</span>
+                  <span>•</span>
+                  <span className="text-amber-600">{agentProperties.filter((p) => p.status === 'SUBMITTED' || p.status === 'UNDER_REVIEW').length} Under Review</span>
+                  <span>•</span>
+                  <span className="text-rose-600">{agentProperties.filter((p) => p.status === 'REJECTED').length} Rejected</span>
+                </div>
+              </div>
+
+              {loadingAgentProperties ? (
+                <div className="py-12 text-center text-slate-400 text-xs">Loading agent properties...</div>
+              ) : agentProperties.length === 0 ? (
+                <div className="py-12 text-center text-slate-400 bg-slate-50 border border-slate-200 rounded-2xl">
+                  <Building2 className="h-8 w-8 mx-auto text-slate-300 mb-2" />
+                  <p className="font-semibold text-slate-700 text-sm">No Properties Submitted Yet</p>
+                  <p className="text-xs text-slate-400 mt-0.5">This agent has not posted any properties yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
+                  {agentProperties.map((prop) => {
+                    const primaryImg = prop.images?.find((i) => i.isPrimary) || prop.images?.[0];
+                    return (
+                      <div
+                        key={prop.id}
+                        className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-slate-300 transition-all"
+                      >
+                        <div className="flex items-center space-x-3 min-w-0">
+                          {primaryImg?.url ? (
+                            <img
+                              src={primaryImg.url}
+                              alt={prop.title}
+                              className="h-16 w-16 rounded-lg object-cover shrink-0 border border-slate-200"
+                            />
+                          ) : (
+                            <div className="h-16 w-16 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 shrink-0">
+                              <Building2 className="h-6 w-6" />
+                            </div>
+                          )}
+
+                          <div className="min-w-0">
+                            <div className="flex items-center space-x-2">
+                              <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-bold">
+                                {prop.category.replace('_', ' ')}
+                              </span>
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
+                                  prop.status === 'APPROVED'
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                    : prop.status === 'REJECTED'
+                                    ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                                    : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                }`}
+                              >
+                                {prop.status}
+                              </span>
+                            </div>
+
+                            <h4 className="font-bold text-sm text-slate-900 truncate mt-1">{prop.title}</h4>
+
+                            <div className="flex items-center space-x-3 text-xs text-slate-500 mt-0.5">
+                              <span className="font-extrabold text-emerald-700">₹{Number(prop.price).toLocaleString('en-IN')}</span>
+                              <span>•</span>
+                              <span className="truncate flex items-center space-x-1">
+                                <MapPin className="h-3 w-3 text-slate-400 inline" />
+                                <span>{prop.location}</span>
+                              </span>
+                              <span>•</span>
+                              <span className="text-[11px] text-slate-400">
+                                {new Date(prop.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="flex items-center space-x-2 shrink-0 self-end sm:self-center">
+                          {prop.status !== 'APPROVED' && (
+                            <button
+                              onClick={() => handleReviewPropertyFromModal(prop.id, true)}
+                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm"
+                            >
+                              Approve
+                            </button>
+                          )}
+                          {prop.status !== 'REJECTED' && (
+                            <button
+                              onClick={() => handleReviewPropertyFromModal(prop.id, false)}
+                              className="px-3 py-1.5 bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 border border-rose-200 rounded-lg text-xs font-semibold"
+                            >
+                              Reject
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {/* Rejection / Suspension Reason Modal */}
       <Modal
