@@ -19,9 +19,10 @@ class WebSocketService {
     _socket = io.io(
       ApiConstants.webSocketUrl,
       io.OptionBuilder()
-          .setTransports(['websocket'])
+          .setTransports(['websocket', 'polling'])
           .enableAutoConnect()
           .setAuth({'token': token})
+          .setQuery({'token': token})
           .build(),
     );
 
