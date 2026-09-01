@@ -180,6 +180,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen> with SingleTicker
 
   Widget _buildRaiseTicketTab() {
     return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -360,8 +361,10 @@ class _SupportScreenState extends ConsumerState<SupportScreen> with SingleTicker
     }
 
     return RefreshIndicator(
+      color: AppColors.primaryEmerald,
       onRefresh: _fetchMyTickets,
       child: ListView.builder(
+        physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
         padding: const EdgeInsets.all(20),
         itemCount: _myTickets.length,
         itemBuilder: (context, index) {

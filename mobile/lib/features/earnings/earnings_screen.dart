@@ -72,8 +72,10 @@ class _EarningsScreenState extends ConsumerState<EarningsScreen> {
           : _errorMessage != null
               ? ErrorStateWidget(message: _errorMessage!, onRetry: _fetchEarnings)
               : RefreshIndicator(
+                  color: AppColors.primaryEmerald,
                   onRefresh: _fetchEarnings,
                   child: ListView(
+                    physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
                     padding: const EdgeInsets.all(20),
                     children: [
                       // Executive Gradient Header Card
@@ -81,26 +83,26 @@ class _EarningsScreenState extends ConsumerState<EarningsScreen> {
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
-                            colors: [AppColors.primaryNavy, AppColors.primaryNavyLight],
+                            colors: [AppColors.primaryNavyDark, AppColors.primaryNavy],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(24),
                           boxShadow: [
-                            BoxShadow(color: AppColors.primaryNavy.withAlpha(30), blurRadius: 16, offset: const Offset(0, 6)),
+                            BoxShadow(color: AppColors.primaryNavyDark.withAlpha(50), blurRadius: 22, offset: const Offset(0, 8)),
                           ],
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Total Cumulative Earnings', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500)),
+                            const Text('Total Cumulative Earnings', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
                             const SizedBox(height: 6),
                             Text(
                               '₹${(_summary['totalEarnings'] ?? 0).toStringAsFixed(2)}',
-                              style: const TextStyle(color: AppColors.accentGold, fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: -0.5),
+                              style: const TextStyle(color: AppColors.primaryEmeraldLight, fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: -0.6),
                             ),
                             const SizedBox(height: 20),
-                            const Divider(color: Colors.white24, height: 1),
+                            const Divider(color: Colors.white12, height: 1),
                             const SizedBox(height: 16),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,

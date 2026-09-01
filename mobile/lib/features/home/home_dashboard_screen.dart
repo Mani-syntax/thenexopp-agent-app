@@ -115,6 +115,7 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
         child: _isLoading
             ? const Center(child: CircularProgressIndicator(color: AppColors.primaryEmerald))
             : SingleChildScrollView(
+                physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
