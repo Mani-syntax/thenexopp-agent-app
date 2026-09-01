@@ -102,3 +102,36 @@ export interface PaymentAnalytics {
   thisMonthSpent: number;
   totalTransactions: number;
 }
+
+export type TicketCategory = 'KYC' | 'PROPERTIES' | 'PAYMENTS' | 'ACCOUNT' | 'TECHNICAL' | 'OTHER';
+export type TicketPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+export type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
+
+export interface SupportTicket {
+  id: string;
+  ticketNumber: string;
+  category: TicketCategory;
+  subject: string;
+  description: string;
+  priority: TicketPriority;
+  status: TicketStatus;
+  resolution?: string | null;
+  resolvedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  agent: {
+    id: string;
+    fullName: string;
+    mobileNumber: string;
+    areaLocation: string;
+    workPlatform: string;
+    status: AgentStatus;
+  };
+}
+
+export interface TicketAnalytics {
+  total: number;
+  open: number;
+  inProgress: number;
+  resolved: number;
+}

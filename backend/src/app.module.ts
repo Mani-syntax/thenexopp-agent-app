@@ -12,6 +12,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { WebsocketModule } from './modules/websocket/websocket.module';
 import { AdminIntegrationModule } from './modules/admin-integration/admin-integration.module';
+import { SupportModule } from './modules/support/support.module';
 
 import { UserEntity } from './database/entities/user.entity';
 import { AgentEntity } from './database/entities/agent.entity';
@@ -26,6 +27,7 @@ import { PaymentEntity } from './database/entities/payment.entity';
 import { NotificationEntity } from './database/entities/notification.entity';
 import { RefreshTokenEntity } from './database/entities/refresh-token.entity';
 import { AuditLogEntity } from './database/entities/audit-log.entity';
+import { SupportTicketEntity } from './database/entities/support-ticket.entity';
 
 @Module({
   imports: [
@@ -64,6 +66,7 @@ import { AuditLogEntity } from './database/entities/audit-log.entity';
             NotificationEntity,
             RefreshTokenEntity,
             AuditLogEntity,
+            SupportTicketEntity,
           ],
           synchronize: true, // Auto migration/sync for development
           logging: false,
@@ -81,6 +84,7 @@ import { AuditLogEntity } from './database/entities/audit-log.entity';
     UploadsModule,
     WebsocketModule,
     AdminIntegrationModule,
+    SupportModule,
   ],
 })
 export class AppModule {}

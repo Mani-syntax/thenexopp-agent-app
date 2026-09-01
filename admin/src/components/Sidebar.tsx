@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, FileCheck, Building2, WalletCards, Shield } from 'lucide-react';
+import { LayoutDashboard, Users, FileCheck, Building2, WalletCards, Shield, LifeBuoy } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
   const links = [
@@ -9,6 +9,7 @@ export const Sidebar: React.FC = () => {
     { to: '/kyc', label: 'KYC Verification', icon: FileCheck },
     { to: '/properties', label: 'Property Listings', icon: Building2 },
     { to: '/financials', label: 'Earnings & Payouts', icon: WalletCards },
+    { to: '/tickets', label: 'Support Tickets', icon: LifeBuoy },
   ];
 
   return (

@@ -4,6 +4,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/constants/api_constants.dart';
 import '../../shared/providers/dio_provider.dart';
 import '../../shared/providers/auth_provider.dart';
+import '../support/support_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -157,8 +158,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ListTile(
                           leading: const Icon(Icons.help_outline_rounded, color: AppColors.primaryNavy),
                           title: const Text('Agent Help & Support', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                          subtitle: const Text('Raise issues or call partner desk', style: TextStyle(fontSize: 12, color: AppColors.textMedium)),
                           trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textLight),
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportScreen()));
+                          },
                         ),
                         const Divider(color: AppColors.borderLight, height: 1),
                         ListTile(

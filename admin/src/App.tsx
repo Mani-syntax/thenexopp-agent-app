@@ -8,6 +8,7 @@ import { Agents } from './pages/Agents';
 import { KycReview } from './pages/KycReview';
 import { Properties } from './pages/Properties';
 import { Financials } from './pages/Financials';
+import { Tickets } from './pages/Tickets';
 
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   const { isAuthenticated } = useAuth();
@@ -37,6 +38,7 @@ export const App: React.FC = () => {
             <Route path="kyc" element={<KycReview />} />
             <Route path="properties" element={<Properties />} />
             <Route path="financials" element={<Financials />} />
+            <Route path="tickets" element={<Tickets />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

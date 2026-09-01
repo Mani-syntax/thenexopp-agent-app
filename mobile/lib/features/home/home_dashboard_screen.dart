@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/services/permission_service.dart';
 import '../../shared/providers/dio_provider.dart';
+import '../support/support_screen.dart';
 
 class HomeDashboardScreen extends ConsumerStatefulWidget {
   const HomeDashboardScreen({super.key});
@@ -335,6 +336,76 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                         ],
                       ),
                     ),
+                    const SizedBox(height: 20),
+
+                    // Agent Support & Helpdesk Card
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [AppColors.primaryEmeraldDark, AppColors.primaryEmerald],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primaryEmerald.withAlpha(50),
+                            blurRadius: 18,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withAlpha(40),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: const Icon(Icons.support_agent_rounded, color: Colors.white, size: 24),
+                              ),
+                              const SizedBox(width: 14),
+                              const Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Need Help or Face an Issue?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15)),
+                                    SizedBox(height: 2),
+                                    Text('Direct partner call desk & ticket filing', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportScreen()));
+                                  },
+                                  icon: const Icon(Icons.confirmation_number_outlined, size: 16, color: AppColors.primaryEmeraldDark),
+                                  label: const Text('Raise Ticket / Call', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.primaryEmeraldDark)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    elevation: 2,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 28),
                   ],
                 ),
               ),

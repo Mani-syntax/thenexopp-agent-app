@@ -93,5 +93,21 @@ export const AdminApiService = {
     });
     return res.data;
   },
+
+  // Support Tickets
+  async getTickets(params?: {
+    status?: string;
+    category?: string;
+    priority?: string;
+    search?: string;
+  }): Promise<{ success: boolean; data: any[]; analytics: { total: number; open: number; inProgress: number; resolved: number } }> {
+    const res = await api.get('/admin/tickets', { params });
+    return res.data;
+  },
+
+  async updateTicket(ticketId: string, data: { status?: string; priority?: string; resolution?: string }) {
+    const res = await api.patch(`/admin/tickets/${ticketId}`, data);
+    return res.data;
+  },
 };
 

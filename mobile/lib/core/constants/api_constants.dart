@@ -37,4 +37,7 @@ class ApiConstants {
   // Uploads
   static const String presignedUrl = '/uploads/presigned-url';
   static const String secureViewUrl = '/uploads/secure-view-url';
+
+  // Support & Helpdesk
+  static const String supportTickets = '/support/tickets';
 }
