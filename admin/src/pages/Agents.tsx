@@ -126,9 +126,9 @@ export const Agents: React.FC = () => {
           <thead className="bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">
             <tr>
               <th className="p-4">Agent Name</th>
-              <th className="p-4">Mobile</th>
-              <th className="p-4">Location / Area</th>
-              <th className="p-4">Work Platform</th>
+              <th className="p-4">Mobile & Area</th>
+              <th className="p-4">Listings Performance</th>
+              <th className="p-4">Money Transferred (₹)</th>
               <th className="p-4">KYC State</th>
               <th className="p-4">Account Status</th>
               <th className="p-4 text-right">Actions</th>
@@ -146,10 +146,47 @@ export const Agents: React.FC = () => {
             ) : (
               filteredAgents.map((agent) => (
                 <tr key={agent.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="p-4 font-semibold text-slate-900">{agent.fullName || 'Unfilled Profile'}</td>
-                  <td className="p-4 text-slate-600">+91 {agent.mobileNumber}</td>
-                  <td className="p-4 text-slate-600">{agent.areaLocation || 'N/A'}</td>
-                  <td className="p-4 text-slate-600">{agent.workPlatform || 'Individual'}</td>
+                  <td className="p-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="h-9 w-9 rounded-xl bg-slate-100 text-slate-700 font-extrabold flex items-center justify-center text-xs">
+                        {agent.fullName ? agent.fullName.charAt(0).toUpperCase() : 'A'}
+                      </div>
+                      <div>
+                        <span className="font-bold text-slate-900 block">{agent.fullName || 'Unfilled Profile'}</span>
+                        <span className="text-xs text-slate-400">ID: {agent.id.substring(0, 8)}...</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <div className="text-slate-900 font-semibold">+91 {agent.mobileNumber}</div>
+                    <div className="text-xs text-slate-500">{agent.areaLocation || 'N/A'} • {agent.workPlatform || 'Individual'}</div>
+                  </td>
+                  <td className="p-4">
+                    <div className="flex items-center space-x-2">
+                      <span className="font-extrabold text-slate-900 text-sm">
+                        {agent.totalListings || 0} Total
+                      </span>
+                      <span className="text-slate-300">•</span>
+                      <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200" title="Accepted / Approved">
+                        {agent.acceptedListings || 0} Accepted
+                      </span>
+                      {(agent.rejectedListings || 0) > 0 && (
+                        <span className="px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 text-xs font-bold border border-rose-200" title="Rejected">
+                          {agent.rejectedListings} Rejected
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <div className="font-extrabold text-emerald-700 text-base">
+                      ₹{Number(agent.totalPaid || 0).toLocaleString('en-IN')}
+                    </div>
+                    {(agent.pendingEarnings || 0) > 0 && (
+                      <div className="text-[11px] text-amber-600 font-semibold">
+                        ₹{Number(agent.pendingEarnings).toLocaleString('en-IN')} Pending
+                      </div>
+                    )}
+                  </td>
                   <td className="p-4">
                     <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
                       agent.kycStatus === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
@@ -173,7 +210,7 @@ export const Agents: React.FC = () => {
                     {agent.status !== 'APPROVED' && (
                       <button
                         onClick={() => handleAction(agent.id, 'APPROVED')}
-                        className="px-3 py-1 bg-emerald-600 text-white font-semibold rounded-lg text-xs hover:bg-emerald-700 transition-colors shadow-sm"
+                        className="px-3 py-1.5 bg-emerald-600 text-white font-semibold rounded-lg text-xs hover:bg-emerald-700 transition-colors shadow-sm"
                       >
                         Approve
                       </button>
@@ -181,7 +218,7 @@ export const Agents: React.FC = () => {
                     {agent.status !== 'SUSPENDED' && (
                       <button
                         onClick={() => handleAction(agent.id, 'SUSPENDED')}
-                        className="px-3 py-1 bg-rose-50 text-rose-700 border border-rose-200 font-semibold rounded-lg text-xs hover:bg-rose-600 hover:text-white transition-colors"
+                        className="px-3 py-1.5 bg-rose-50 text-rose-700 border border-rose-200 font-semibold rounded-lg text-xs hover:bg-rose-600 hover:text-white transition-colors"
                       >
                         Suspend
                       </button>

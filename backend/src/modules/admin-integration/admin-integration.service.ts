@@ -1,14 +1,16 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Between, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
 import { AgentEntity, AgentStatus } from '../../database/entities/agent.entity';
 import { KycDocumentEntity, KycStatus } from '../../database/entities/kyc-document.entity';
 import { PropertyEntity, PropertyStatus } from '../../database/entities/property.entity';
+import { PropertyImageEntity } from '../../database/entities/property-image.entity';
 import { EarningEntity, EarningStatus } from '../../database/entities/earning.entity';
 import { PaymentEntity, PaymentStatus } from '../../database/entities/payment.entity';
 import { AgentWebSocketGateway } from '../websocket/agent-websocket.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AuditLogEntity } from '../../database/entities/audit-log.entity';
+import { UploadsService, BucketType } from '../uploads/uploads.service';
 
 @Injectable()
 export class AdminIntegrationService {
@@ -21,6 +23,8 @@ export class AdminIntegrationService {
     private readonly kycRepository: Repository<KycDocumentEntity>,
     @InjectRepository(PropertyEntity)
     private readonly propertyRepository: Repository<PropertyEntity>,
+    @InjectRepository(PropertyImageEntity)
+    private readonly imageRepository: Repository<PropertyImageEntity>,
     @InjectRepository(EarningEntity)
     private readonly earningRepository: Repository<EarningEntity>,
     @InjectRepository(PaymentEntity)
@@ -29,31 +33,243 @@ export class AdminIntegrationService {
     private readonly auditRepository: Repository<AuditLogEntity>,
     private readonly wsGateway: AgentWebSocketGateway,
     private readonly notificationsService: NotificationsService,
+    private readonly uploadsService: UploadsService,
   ) {}
 
-  async getAllAgents(status?: AgentStatus) {
-    const whereCondition = status ? { status } : {};
+  async getAllAgents(status?: AgentStatus, search?: string) {
+    const whereCondition: any = status ? { status } : {};
     const agents = await this.agentRepository.find({
       where: whereCondition,
-      relations: ['profile', 'kyc', 'bankAccount', 'user'],
+      relations: ['profile', 'kyc', 'bankAccount', 'user', 'properties', 'payments', 'earnings'],
       order: { createdAt: 'DESC' },
     });
 
+    let filtered = agents;
+    if (search && search.trim()) {
+      const q = search.trim().toLowerCase();
+      filtered = agents.filter((a) => {
+        const name = (a.profile?.fullName || '').toLowerCase();
+        const mobile = (a.user?.mobileNumber || '');
+        const area = (a.profile?.areaLocation || '').toLowerCase();
+        return name.includes(q) || mobile.includes(q) || area.includes(q);
+      });
+    }
+
     return {
       success: true,
-      data: agents.map((a) => ({
-        id: a.id,
-        userId: a.userId,
-        mobileNumber: a.user ? a.user.mobileNumber : null,
-        status: a.status,
-        rejectionReason: a.rejectionReason,
-        fullName: a.profile ? a.profile.fullName : null,
-        areaLocation: a.profile ? a.profile.areaLocation : null,
-        workPlatform: a.profile ? a.profile.workPlatform : null,
-        kycStatus: a.kyc ? a.kyc.status : 'NOT_SUBMITTED',
-        bankAccountLast4: a.bankAccount ? a.bankAccount.accountLast4 : null,
-        submittedAt: a.createdAt,
-      })),
+      data: filtered.map((a) => {
+        const props = a.properties || [];
+        const payments = a.payments || [];
+        const earnings = a.earnings || [];
+
+        const totalListings = props.length;
+        const acceptedListings = props.filter((p) => p.status === PropertyStatus.APPROVED).length;
+        const rejectedListings = props.filter((p) => p.status === PropertyStatus.REJECTED).length;
+        const pendingListings = props.filter((p) => p.status === PropertyStatus.SUBMITTED || p.status === PropertyStatus.UNDER_REVIEW).length;
+
+        const totalPaid = payments
+          .filter((p) => p.status === PaymentStatus.COMPLETED)
+          .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
+        const pendingEarnings = earnings
+          .filter((e) => e.status === EarningStatus.PENDING)
+          .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+
+        return {
+          id: a.id,
+          userId: a.userId,
+          mobileNumber: a.user ? a.user.mobileNumber : null,
+          status: a.status,
+          rejectionReason: a.rejectionReason,
+          fullName: a.profile ? a.profile.fullName : null,
+          areaLocation: a.profile ? a.profile.areaLocation : null,
+          workPlatform: a.profile ? a.profile.workPlatform : null,
+          kycStatus: a.kyc ? a.kyc.status : 'NOT_SUBMITTED',
+          bankAccountLast4: a.bankAccount ? a.bankAccount.accountLast4 : null,
+          submittedAt: a.createdAt,
+          totalListings,
+          acceptedListings,
+          rejectedListings,
+          pendingListings,
+          totalPaid,
+          pendingEarnings,
+        };
+      }),
+    };
+  }
+
+  async getAllProperties(status?: PropertyStatus, startDate?: string, endDate?: string, agentId?: string, search?: string) {
+    const query = this.propertyRepository
+      .createQueryBuilder('property')
+      .leftJoinAndSelect('property.images', 'images')
+      .leftJoinAndSelect('property.agent', 'agent')
+      .leftJoinAndSelect('agent.profile', 'profile')
+      .leftJoinAndSelect('agent.user', 'user')
+      .orderBy('property.createdAt', 'DESC');
+
+    if (status) {
+      query.andWhere('property.status = :status', { status });
+    }
+
+    if (agentId) {
+      query.andWhere('property.agentId = :agentId', { agentId });
+    }
+
+    if (startDate) {
+      const start = new Date(startDate);
+      query.andWhere('property.createdAt >= :start', { start });
+    }
+
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      query.andWhere('property.createdAt <= :end', { end });
+    }
+
+    if (search && search.trim()) {
+      const q = `%${search.trim()}%`;
+      query.andWhere(
+        '(property.title ILIKE :q OR property.location ILIKE :q OR profile.fullName ILIKE :q OR user.mobileNumber ILIKE :q)',
+        { q },
+      );
+    }
+
+    const properties = await query.getMany();
+
+    const results = await Promise.all(
+      properties.map(async (prop) => {
+        const imagesWithUrls = await Promise.all(
+          (prop.images || []).map(async (img) => {
+            let url = null;
+            try {
+              url = await this.uploadsService.getPresignedReadUrl(BucketType.PROPERTY, img.imageKey);
+            } catch (_) {}
+            return {
+              id: img.id,
+              imageKey: img.imageKey,
+              isPrimary: img.isPrimary,
+              displayOrder: img.displayOrder,
+              url,
+            };
+          }),
+        );
+
+        return {
+          id: prop.id,
+          agentId: prop.agentId,
+          agent: {
+            id: prop.agent ? prop.agent.id : prop.agentId,
+            fullName: prop.agent?.profile?.fullName || 'Agent Partner',
+            mobileNumber: prop.agent?.user?.mobileNumber || '',
+            areaLocation: prop.agent?.profile?.areaLocation || '',
+            workPlatform: prop.agent?.profile?.workPlatform || '',
+          },
+          title: prop.title,
+          description: prop.description,
+          price: Number(prop.price),
+          category: prop.category,
+          specifications: prop.specifications || {},
+          location: prop.location,
+          status: prop.status,
+          rejectionReason: prop.rejectionReason,
+          submittedAt: prop.submittedAt,
+          reviewedAt: prop.reviewedAt,
+          createdAt: prop.createdAt,
+          images: imagesWithUrls,
+        };
+      }),
+    );
+
+    return {
+      success: true,
+      data: results,
+    };
+  }
+
+  async getPaymentRecords(startDate?: string, endDate?: string, agentId?: string, search?: string) {
+    const query = this.paymentRepository
+      .createQueryBuilder('payment')
+      .leftJoinAndSelect('payment.agent', 'agent')
+      .leftJoinAndSelect('agent.profile', 'profile')
+      .leftJoinAndSelect('agent.user', 'user')
+      .leftJoinAndSelect('payment.earning', 'earning')
+      .orderBy('payment.paidAt', 'DESC');
+
+    if (agentId) {
+      query.andWhere('payment.agentId = :agentId', { agentId });
+    }
+
+    if (startDate) {
+      const start = new Date(startDate);
+      query.andWhere('payment.paidAt >= :start', { start });
+    }
+
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      query.andWhere('payment.paidAt <= :end', { end });
+    }
+
+    if (search && search.trim()) {
+      const q = `%${search.trim()}%`;
+      query.andWhere(
+        '(payment.transactionId ILIKE :q OR profile.fullName ILIKE :q OR user.mobileNumber ILIKE :q OR earning.title ILIKE :q)',
+        { q },
+      );
+    }
+
+    const payments = await query.getMany();
+
+    // Calculate aggregated analytics across all recorded payments
+    const allPayments = await this.paymentRepository.find({
+      where: { status: PaymentStatus.COMPLETED },
+    });
+
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const totalSpent = allPayments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
+    const todaySpent = allPayments
+      .filter((p) => new Date(p.paidAt) >= startOfToday)
+      .reduce((acc, p) => acc + Number(p.amount || 0), 0);
+    const thisWeekSpent = allPayments
+      .filter((p) => new Date(p.paidAt) >= sevenDaysAgo)
+      .reduce((acc, p) => acc + Number(p.amount || 0), 0);
+    const thisMonthSpent = allPayments
+      .filter((p) => new Date(p.paidAt) >= startOfMonth)
+      .reduce((acc, p) => acc + Number(p.amount || 0), 0);
+
+    const data = payments.map((p) => ({
+      id: p.id,
+      agentId: p.agentId,
+      agent: {
+        id: p.agent ? p.agent.id : p.agentId,
+        fullName: p.agent?.profile?.fullName || 'Agent Partner',
+        mobileNumber: p.agent?.user?.mobileNumber || '',
+      },
+      earningId: p.earningId,
+      earningTitle: p.earning ? p.earning.title : null,
+      amount: Number(p.amount),
+      transactionId: p.transactionId,
+      paymentMethod: p.paymentMethod,
+      status: p.status,
+      paymentProofKey: p.paymentProofKey,
+      paidAt: p.paidAt,
+      createdAt: p.createdAt,
+    }));
+
+    return {
+      success: true,
+      analytics: {
+        totalSpent,
+        todaySpent,
+        thisWeekSpent,
+        thisMonthSpent,
+        totalTransactions: allPayments.length,
+      },
+      data,
     };
   }
 

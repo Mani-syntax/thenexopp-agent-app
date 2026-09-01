@@ -2,6 +2,7 @@ import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, HttpCode, Ht
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { AdminIntegrationService } from './admin-integration.service';
 import { AgentStatus } from '../../database/entities/agent.entity';
+import { PropertyStatus } from '../../database/entities/property.entity';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 class ReviewKycDto {
@@ -43,10 +44,46 @@ export class AdminIntegrationController {
   constructor(private readonly adminService: AdminIntegrationService) {}
 
   @Get('agents')
-  @ApiOperation({ summary: 'List all agents for Admin inspection' })
+  @ApiOperation({ summary: 'List all agents with performance metrics' })
   @ApiQuery({ name: 'status', enum: AgentStatus, required: false })
-  async getAllAgents(@Query('status') status?: AgentStatus) {
-    return this.adminService.getAllAgents(status);
+  @ApiQuery({ name: 'search', required: false })
+  async getAllAgents(
+    @Query('status') status?: AgentStatus,
+    @Query('search') search?: string,
+  ) {
+    return this.adminService.getAllAgents(status, search);
+  }
+
+  @Get('properties')
+  @ApiOperation({ summary: 'List all properties day-wise with agent details and pictures' })
+  @ApiQuery({ name: 'status', enum: PropertyStatus, required: false })
+  @ApiQuery({ name: 'startDate', required: false })
+  @ApiQuery({ name: 'endDate', required: false })
+  @ApiQuery({ name: 'agentId', required: false })
+  @ApiQuery({ name: 'search', required: false })
+  async getAllProperties(
+    @Query('status') status?: PropertyStatus,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('agentId') agentId?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.adminService.getAllProperties(status, startDate, endDate, agentId, search);
+  }
+
+  @Get('payments')
+  @ApiOperation({ summary: 'List all payment records and financial analytics' })
+  @ApiQuery({ name: 'startDate', required: false })
+  @ApiQuery({ name: 'endDate', required: false })
+  @ApiQuery({ name: 'agentId', required: false })
+  @ApiQuery({ name: 'search', required: false })
+  async getPaymentRecords(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('agentId') agentId?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.adminService.getPaymentRecords(startDate, endDate, agentId, search);
   }
 
   @Put('agents/:id/kyc')
