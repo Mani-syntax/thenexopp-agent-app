@@ -12,18 +12,23 @@ export class AdminWebSocketService {
     }
 
     this.socket = io(WS_URL, {
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
       auth: { token },
       query: { token },
       autoConnect: true,
       reconnection: true,
       reconnectionAttempts: 10,
-      reconnectionDelay: 1000,
+      reconnectionDelay: 2000,
     });
 
     this.socket.on('connect', () => {
       console.log('[Admin Socket.io] Connected to server Gateway');
       this.notify('connection_status', { connected: true });
+    });
+
+    this.socket.on('connect_error', (err) => {
+      // Graceful retry without crashing
+      this.notify('connection_status', { connected: false });
     });
 
     this.socket.on('disconnect', () => {
