@@ -33,24 +33,24 @@ const ToastItem: React.FC<{ toast: ToastMessage; onRemove: (id: string) => void 
 
   return (
     <div
-      className={`p-4 rounded-xl border shadow-xl flex items-start space-x-3 transition-all transform translate-y-0 ${
+      className={`p-4 rounded-xl border shadow-xl flex items-start space-x-3 transition-all transform translate-y-0 bg-white ${
         toast.type === 'success'
-          ? 'bg-slate-900 border-emerald-500/50 text-emerald-400'
+          ? 'border-emerald-200 text-emerald-800'
           : toast.type === 'error'
-          ? 'bg-slate-900 border-red-500/50 text-red-400'
-          : 'bg-slate-900 border-blue-500/50 text-blue-400'
+          ? 'border-rose-200 text-rose-800'
+          : 'border-blue-200 text-blue-800'
       }`}
     >
-      {toast.type === 'success' && <CheckCircle2 className="h-5 w-5 shrink-0 mt-0.5" />}
-      {toast.type === 'error' && <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />}
-      {toast.type === 'info' && <Info className="h-5 w-5 shrink-0 mt-0.5" />}
+      {toast.type === 'success' && <CheckCircle2 className="h-5 w-5 shrink-0 mt-0.5 text-emerald-600" />}
+      {toast.type === 'error' && <AlertCircle className="h-5 w-5 shrink-0 mt-0.5 text-rose-600" />}
+      {toast.type === 'info' && <Info className="h-5 w-5 shrink-0 mt-0.5 text-blue-600" />}
 
       <div className="flex-1 min-w-0">
-        <h4 className="text-sm font-bold text-slate-100">{toast.title}</h4>
-        <p className="text-xs text-slate-300 mt-0.5">{toast.message}</p>
+        <h4 className="text-sm font-bold text-slate-900">{toast.title}</h4>
+        <p className="text-xs text-slate-600 mt-0.5">{toast.message}</p>
       </div>
 
-      <button onClick={() => onRemove(toast.id)} className="text-slate-400 hover:text-slate-200">
+      <button onClick={() => onRemove(toast.id)} className="text-slate-400 hover:text-slate-700">
         <X className="h-4 w-4" />
       </button>
     </div>

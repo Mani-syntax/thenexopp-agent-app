@@ -58,23 +58,23 @@ export const Financials: React.FC = () => {
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <h2 className="text-2xl font-bold text-slate-100 tracking-tight">Earnings & Payout Ledger</h2>
-        <p className="text-slate-400 text-sm mt-1">Issue agent commissions, record payout transactions, and attach receipts</p>
+        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Earnings & Payout Ledger</h2>
+        <p className="text-slate-500 text-sm mt-1">Issue agent commissions, record payout transactions, and attach receipts</p>
       </div>
 
       {successMsg && (
-        <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 p-4 rounded-xl text-sm font-medium flex items-center space-x-2">
-          <CheckCircle2 className="h-5 w-5" />
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl text-sm font-medium flex items-center space-x-2">
+          <CheckCircle2 className="h-5 w-5 text-emerald-600" />
           <span>{successMsg}</span>
         </div>
       )}
 
       {/* Tabs */}
-      <div className="flex border-b border-slate-800 space-x-8">
+      <div className="flex border-b border-slate-200 space-x-8">
         <button
           onClick={() => { setTab('earning'); setSuccessMsg(''); }}
           className={`pb-3 font-semibold text-sm transition-colors border-b-2 ${
-            tab === 'earning' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-slate-400 hover:text-slate-200'
+            tab === 'earning' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-900'
           }`}
         >
           Credit Agent Commission
@@ -82,7 +82,7 @@ export const Financials: React.FC = () => {
         <button
           onClick={() => { setTab('payout'); setSuccessMsg(''); }}
           className={`pb-3 font-semibold text-sm transition-colors border-b-2 ${
-            tab === 'payout' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-slate-400 hover:text-slate-200'
+            tab === 'payout' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-900'
           }`}
         >
           Record Payout Transaction
@@ -90,96 +90,96 @@ export const Financials: React.FC = () => {
       </div>
 
       {tab === 'earning' ? (
-        <form onSubmit={handleAddEarning} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+        <form onSubmit={handleAddEarning} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-1">Agent UUID</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Agent UUID</label>
             <input
               type="text"
               required
               value={earningAgentId}
               onChange={(e) => setEarningAgentId(e.target.value)}
               placeholder="e.g. 123e4567-e89b-12d3-a456-426614174000"
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 font-mono"
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 font-mono"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-1">Earning Title / Deal Reference</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Earning Title / Deal Reference</label>
             <input
               type="text"
               required
               value={earningTitle}
               onChange={(e) => setEarningTitle(e.target.value)}
               placeholder="e.g. Commission for 3BHK Villa Deal"
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-1">Amount (INR ₹)</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Amount (INR ₹)</label>
             <input
               type="number"
               required
               value={earningAmount}
               onChange={(e) => setEarningAmount(e.target.value)}
               placeholder="15000"
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 font-mono"
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 font-mono"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-emerald-500 hover:bg-emerald-600 font-semibold py-3 rounded-xl text-white shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
+            className="w-full bg-emerald-600 hover:bg-emerald-700 font-semibold py-3 rounded-xl text-white shadow-md shadow-emerald-600/15 transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
           >
             <Send className="h-4 w-4" />
             <span>{loading ? 'Processing...' : 'Credit Earning to Agent'}</span>
           </button>
         </form>
       ) : (
-        <form onSubmit={handleRecordPayout} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+        <form onSubmit={handleRecordPayout} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-1">Agent UUID</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Agent UUID</label>
             <input
               type="text"
               required
               value={payoutAgentId}
               onChange={(e) => setPayoutAgentId(e.target.value)}
               placeholder="e.g. 123e4567-e89b-12d3-a456-426614174000"
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 font-mono"
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 font-mono"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-1">Payout Amount (INR ₹)</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Payout Amount (INR ₹)</label>
             <input
               type="number"
               required
               value={payoutAmount}
               onChange={(e) => setPayoutAmount(e.target.value)}
               placeholder="15000"
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 font-mono"
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 font-mono"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-1">Transaction Ref / UTR ID</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Transaction Ref / UTR ID</label>
             <input
               type="text"
               required
               value={txnId}
               onChange={(e) => setTxnId(e.target.value)}
               placeholder="e.g. TXN987654321"
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 font-mono"
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 font-mono"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-1">Payment Method</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Payment Method</label>
             <select
               value={paymentMethod}
               onChange={(e) => setPaymentMethod(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20"
             >
               <option value="UPI">UPI Transfer</option>
               <option value="NEFT">NEFT Bank Transfer</option>
@@ -191,7 +191,7 @@ export const Financials: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-emerald-500 hover:bg-emerald-600 font-semibold py-3 rounded-xl text-white shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
+            className="w-full bg-emerald-600 hover:bg-emerald-700 font-semibold py-3 rounded-xl text-white shadow-md shadow-emerald-600/15 transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
           >
             <Wallet className="h-4 w-4" />
             <span>{loading ? 'Processing...' : 'Record Payout & Notify Agent'}</span>

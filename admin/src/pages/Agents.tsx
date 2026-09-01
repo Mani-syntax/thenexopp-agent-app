@@ -78,39 +78,39 @@ export const Agents: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center space-x-2">
-            <h2 className="text-2xl font-bold text-slate-100 tracking-tight">Agents & Human Partners</h2>
-            <span className="flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold border border-emerald-500/20">
-              <Radio className="h-3 w-3 animate-pulse" />
+            <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Agents & Human Partners</h2>
+            <span className="flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200">
+              <Radio className="h-3 w-3 animate-pulse text-emerald-600" />
               <span>Live Socket Stream</span>
             </span>
           </div>
-          <p className="text-slate-400 text-sm mt-1">Manage onboarding approvals, status transitions, and agent state in real-time</p>
+          <p className="text-slate-500 text-sm mt-1">Manage onboarding approvals, status transitions, and agent state in real-time</p>
         </div>
 
         <div className="flex items-center space-x-3">
           <button
             onClick={fetchAgents}
-            className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-slate-200 transition-colors"
+            className="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors shadow-sm"
             title="Refresh Table"
           >
             <RefreshCw className="h-4 w-4" />
           </button>
 
           <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
             <input
               type="text"
               placeholder="Search name or phone..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 w-64"
+              className="bg-white border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-sm text-slate-900 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 w-64 shadow-sm"
             />
           </div>
 
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
+            className="bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm text-slate-900 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 shadow-sm"
           >
             <option value="ALL">All Statuses</option>
             <option value="PENDING_APPROVAL">Pending Approval</option>
@@ -121,9 +121,9 @@ export const Agents: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
         <table className="w-full text-left text-sm">
-          <thead className="bg-slate-800/50 text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-800">
+          <thead className="bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">
             <tr>
               <th className="p-4">Agent Name</th>
               <th className="p-4">Mobile</th>
@@ -134,37 +134,37 @@ export const Agents: React.FC = () => {
               <th className="p-4 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800">
+          <tbody className="divide-y divide-slate-100">
             {loading ? (
               <tr>
-                <td colSpan={7} className="py-8 text-center text-slate-500">Loading live agents database...</td>
+                <td colSpan={7} className="py-8 text-center text-slate-400">Loading live agents database...</td>
               </tr>
             ) : filteredAgents.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-8 text-center text-slate-500">No agents found matching criteria.</td>
+                <td colSpan={7} className="py-8 text-center text-slate-400">No agents found matching criteria.</td>
               </tr>
             ) : (
               filteredAgents.map((agent) => (
-                <tr key={agent.id} className="hover:bg-slate-800/40 transition-colors">
-                  <td className="p-4 font-semibold text-slate-200">{agent.fullName || 'Unfilled Profile'}</td>
-                  <td className="p-4 text-slate-400">+91 {agent.mobileNumber}</td>
-                  <td className="p-4 text-slate-400">{agent.areaLocation || 'N/A'}</td>
-                  <td className="p-4 text-slate-400">{agent.workPlatform || 'Individual'}</td>
+                <tr key={agent.id} className="hover:bg-slate-50 transition-colors">
+                  <td className="p-4 font-semibold text-slate-900">{agent.fullName || 'Unfilled Profile'}</td>
+                  <td className="p-4 text-slate-600">+91 {agent.mobileNumber}</td>
+                  <td className="p-4 text-slate-600">{agent.areaLocation || 'N/A'}</td>
+                  <td className="p-4 text-slate-600">{agent.workPlatform || 'Individual'}</td>
                   <td className="p-4">
-                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                      agent.kycStatus === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                      agent.kycStatus === 'REJECTED' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
-                      'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                      agent.kycStatus === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                      agent.kycStatus === 'REJECTED' ? 'bg-rose-50 text-rose-700 border border-rose-200' :
+                      'bg-amber-50 text-amber-700 border border-amber-200'
                     }`}>
                       {agent.kycStatus}
                     </span>
                   </td>
                   <td className="p-4">
                     <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                      agent.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                      agent.status === 'PENDING_APPROVAL' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' :
-                      agent.status === 'SUSPENDED' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
-                      'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                      agent.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                      agent.status === 'PENDING_APPROVAL' ? 'bg-purple-50 text-purple-700 border border-purple-200' :
+                      agent.status === 'SUSPENDED' ? 'bg-rose-50 text-rose-700 border border-rose-200' :
+                      'bg-amber-50 text-amber-700 border border-amber-200'
                     }`}>
                       {agent.status}
                     </span>
@@ -173,7 +173,7 @@ export const Agents: React.FC = () => {
                     {agent.status !== 'APPROVED' && (
                       <button
                         onClick={() => handleAction(agent.id, 'APPROVED')}
-                        className="px-3 py-1 bg-emerald-500 text-white font-semibold rounded-lg text-xs hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/20"
+                        className="px-3 py-1 bg-emerald-600 text-white font-semibold rounded-lg text-xs hover:bg-emerald-700 transition-colors shadow-sm"
                       >
                         Approve
                       </button>
@@ -181,7 +181,7 @@ export const Agents: React.FC = () => {
                     {agent.status !== 'SUSPENDED' && (
                       <button
                         onClick={() => handleAction(agent.id, 'SUSPENDED')}
-                        className="px-3 py-1 bg-red-500/10 text-red-400 border border-red-500/20 font-semibold rounded-lg text-xs hover:bg-red-500 hover:text-white transition-colors"
+                        className="px-3 py-1 bg-rose-50 text-rose-700 border border-rose-200 font-semibold rounded-lg text-xs hover:bg-rose-600 hover:text-white transition-colors"
                       >
                         Suspend
                       </button>
@@ -201,30 +201,30 @@ export const Agents: React.FC = () => {
         title={`Confirm ${pendingStatus === 'SUSPENDED' ? 'Account Suspension' : 'Rejection'}`}
       >
         <div className="space-y-4">
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500">
             Please enter the official reason for updating this agent's status. This will be transmitted live to their mobile phone.
           </p>
           <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-1">Reason / Rationale</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Reason / Rationale</label>
             <textarea
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
               rows={3}
               placeholder="e.g. Document verification failed or terms policy violation"
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-red-500"
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-rose-500 focus:bg-white"
             />
           </div>
 
           <div className="flex justify-end space-x-3 pt-2">
             <button
               onClick={() => setModalOpen(false)}
-              className="px-4 py-2 bg-slate-800 text-slate-400 rounded-xl text-xs font-semibold hover:text-slate-200"
+              className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-semibold hover:bg-slate-200 hover:text-slate-900"
             >
               Cancel
             </button>
             <button
               onClick={() => selectedAgentId && pendingStatus && executeStatusUpdate(selectedAgentId, pendingStatus, rejectionReason)}
-              className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl text-xs font-semibold shadow-lg shadow-red-500/20"
+              className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-rose-600/15"
             >
               Confirm Update & Send Live Notification
             </button>
