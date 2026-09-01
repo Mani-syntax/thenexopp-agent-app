@@ -22,7 +22,12 @@ import {
   List,
   RefreshCw,
   X,
+  Download,
+  FolderDown,
+  FileArchive,
+  Loader2,
 } from 'lucide-react';
+import JSZip from 'jszip';
 import { Modal } from '../components/Modal';
 
 export const Properties: React.FC = () => {
@@ -50,6 +55,82 @@ export const Properties: React.FC = () => {
   // Image Lightbox Modal
   const [lightboxImages, setLightboxImages] = useState<string[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  // Photo Download State
+  const [downloadingPropertyId, setDownloadingPropertyId] = useState<string | null>(null);
+  const [downloadProgress, setDownloadProgress] = useState<string>('');
+
+  const downloadSinglePhoto = async (url: string, defaultFilename?: string) => {
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      const ext = url.split('?')[0].split('.').pop() || 'jpg';
+      link.download = defaultFilename || `Property_Photo_${Date.now()}.${ext}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (_) {
+      window.open(url, '_blank');
+    }
+  };
+
+  const downloadAllPropertyPhotosZip = async (prop: PropertyListing) => {
+    const images = prop.images?.filter((img) => !!img.url) || [];
+    if (images.length === 0) {
+      alert('No photos available for this property.');
+      return;
+    }
+
+    setDownloadingPropertyId(prop.id);
+    setDownloadProgress(`Packing 0/${images.length}...`);
+
+    try {
+      const zip = new JSZip();
+      const cleanTitle = (prop.title || 'Property')
+        .replace(/[^a-zA-Z0-9_-]/g, '_')
+        .substring(0, 30);
+      const folderName = `${cleanTitle}_Photos`;
+      const imgFolder = zip.folder(folderName) || zip;
+
+      for (let i = 0; i < images.length; i++) {
+        const img = images[i];
+        setDownloadProgress(`Downloading photo ${i + 1}/${images.length}...`);
+        try {
+          const res = await fetch(img.url!);
+          const blob = await res.blob();
+          const ext = img.url!.split('?')[0].split('.').pop() || 'jpg';
+          imgFolder.file(`Photo_${i + 1}${img.isPrimary ? '_PRIMARY' : ''}.${ext}`, blob);
+        } catch (err) {
+          console.error('Failed to fetch image for zip', err);
+        }
+      }
+
+      setDownloadProgress('Generating ZIP archive...');
+      const content = await zip.generateAsync({ type: 'blob' });
+      const zipUrl = window.URL.createObjectURL(content);
+      const link = document.createElement('a');
+      link.href = zipUrl;
+      link.download = `TheNexopp_${cleanTitle}_${prop.id.substring(0, 8)}_Photos.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(zipUrl);
+    } catch (err) {
+      console.error('Zip generation error', err);
+      alert('Failed to generate ZIP archive. Initiating direct photo downloads.');
+      for (let i = 0; i < images.length; i++) {
+        await downloadSinglePhoto(images[i].url!, `Photo_${i + 1}.jpg`);
+        await new Promise((r) => setTimeout(r, 250));
+      }
+    } finally {
+      setDownloadingPropertyId(null);
+      setDownloadProgress('');
+    }
+  };
 
   useEffect(() => {
     fetchAgents();
@@ -523,6 +604,22 @@ export const Properties: React.FC = () => {
                             <span>Inspect</span>
                           </button>
 
+                          {prop.images && prop.images.length > 0 && (
+                            <button
+                              onClick={() => downloadAllPropertyPhotosZip(prop)}
+                              disabled={downloadingPropertyId === prop.id}
+                              className="px-2.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/80 font-semibold rounded-xl text-xs flex items-center justify-center space-x-1 transition-colors"
+                              title="Download Complete Photos (ZIP)"
+                            >
+                              {downloadingPropertyId === prop.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-600" />
+                              ) : (
+                                <Download className="h-3.5 w-3.5" />
+                              )}
+                              <span className="hidden sm:inline">Photos</span>
+                            </button>
+                          )}
+
                           {prop.status !== 'APPROVED' && (
                             <button
                               onClick={() => handleReviewAction(prop.id, true)}
@@ -622,6 +719,21 @@ export const Properties: React.FC = () => {
                     >
                       Inspect
                     </button>
+                    {prop.images && prop.images.length > 0 && (
+                      <button
+                        onClick={() => downloadAllPropertyPhotosZip(prop)}
+                        disabled={downloadingPropertyId === prop.id}
+                        className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold inline-flex items-center space-x-1"
+                        title="Download Complete Photos (ZIP)"
+                      >
+                        {downloadingPropertyId === prop.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin text-emerald-600" />
+                        ) : (
+                          <Download className="h-3 w-3" />
+                        )}
+                        <span>Photos</span>
+                      </button>
+                    )}
                     {prop.status !== 'APPROVED' && (
                       <button
                         onClick={() => handleReviewAction(prop.id, true)}
@@ -653,25 +765,60 @@ export const Properties: React.FC = () => {
             {/* Gallery */}
             {inspectProperty.images && inspectProperty.images.length > 0 && (
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  Uploaded Photos ({inspectProperty.images.length})
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Uploaded Photos ({inspectProperty.images.length})
+                  </label>
+                  <button
+                    onClick={() => downloadAllPropertyPhotosZip(inspectProperty)}
+                    disabled={downloadingPropertyId === inspectProperty.id}
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-sm transition-all"
+                  >
+                    {downloadingPropertyId === inspectProperty.id ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        <span>{downloadProgress || 'Packing ZIP...'}</span>
+                      </>
+                    ) : (
+                      <>
+                        <FolderDown className="h-3.5 w-3.5" />
+                        <span>Download All Photos (ZIP)</span>
+                      </>
+                    )}
+                  </button>
+                </div>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                   {inspectProperty.images.map((img, idx) => (
                     <div
                       key={img.id}
-                      onClick={() => openLightbox(inspectProperty.images, idx)}
-                      className="relative h-24 rounded-xl overflow-hidden border border-slate-200 cursor-pointer group"
+                      className="relative h-24 rounded-xl overflow-hidden border border-slate-200 group"
                     >
                       {img.url ? (
-                        <img src={img.url} alt="prop" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                        <img
+                          src={img.url}
+                          alt="prop"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform cursor-pointer"
+                          onClick={() => openLightbox(inspectProperty.images, idx)}
+                        />
                       ) : (
                         <div className="w-full h-full bg-slate-100 flex items-center justify-center text-xs text-slate-400">Photo</div>
                       )}
                       {img.isPrimary && (
-                        <span className="absolute bottom-1 left-1 bg-emerald-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                        <span className="absolute bottom-1 left-1 bg-emerald-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm">
                           Primary
                         </span>
+                      )}
+                      {img.url && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            downloadSinglePhoto(img.url!, `${inspectProperty.title}_Photo_${idx + 1}.jpg`);
+                          }}
+                          className="absolute top-1 right-1 p-1 bg-slate-900/70 hover:bg-slate-900 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Download this photo"
+                        >
+                          <Download className="h-3 w-3" />
+                        </button>
                       )}
                     </div>
                   ))}
@@ -814,25 +961,37 @@ export const Properties: React.FC = () => {
 
       {/* Image Lightbox Modal */}
       {lightboxImages.length > 0 && (
-        <div className="fixed inset-0 z-50 bg-slate-950/90 flex items-center justify-center p-4 backdrop-blur-md">
-          <button
-            onClick={() => setLightboxImages([])}
-            className="absolute top-6 right-6 text-white/80 hover:text-white p-2 rounded-full bg-white/10"
-          >
-            <XCircle className="h-6 w-6" />
-          </button>
+        <div className="fixed inset-0 z-50 bg-slate-950/95 flex items-center justify-center p-4 backdrop-blur-md">
+          {/* Top Bar Controls */}
+          <div className="absolute top-6 right-6 flex items-center space-x-3 z-10">
+            <button
+              onClick={() => downloadSinglePhoto(lightboxImages[lightboxIndex], `Property_Photo_${lightboxIndex + 1}.jpg`)}
+              className="px-3.5 py-2 bg-white/15 hover:bg-white/25 text-white rounded-xl text-xs font-bold flex items-center space-x-2 backdrop-blur-sm transition-all"
+              title="Download this high-resolution photo"
+            >
+              <Download className="h-4 w-4" />
+              <span>Download Photo</span>
+            </button>
+            <button
+              onClick={() => setLightboxImages([])}
+              className="text-white/80 hover:text-white p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
+              title="Close Preview"
+            >
+              <XCircle className="h-6 w-6" />
+            </button>
+          </div>
 
           {lightboxImages.length > 1 && (
             <>
               <button
                 onClick={() => setLightboxIndex((prev) => (prev > 0 ? prev - 1 : lightboxImages.length - 1))}
-                className="absolute left-6 text-white/80 hover:text-white p-3 rounded-full bg-white/10"
+                className="absolute left-6 text-white/80 hover:text-white p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors z-10"
               >
                 <ChevronLeft className="h-6 w-6" />
               </button>
               <button
                 onClick={() => setLightboxIndex((prev) => (prev < lightboxImages.length - 1 ? prev + 1 : 0))}
-                className="absolute right-6 text-white/80 hover:text-white p-3 rounded-full bg-white/10"
+                className="absolute right-6 text-white/80 hover:text-white p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors z-10"
               >
                 <ChevronRight className="h-6 w-6" />
               </button>
