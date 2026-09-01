@@ -6,6 +6,7 @@ import '../../core/constants/api_constants.dart';
 import '../../core/services/permission_service.dart';
 import '../../shared/providers/dio_provider.dart';
 import '../support/support_screen.dart';
+import '../notifications/notifications_screen.dart';
 
 class HomeDashboardScreen extends ConsumerStatefulWidget {
   const HomeDashboardScreen({super.key});
@@ -91,6 +92,8 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
         ),
         actions: [
           Container(
+            height: 42,
+            width: 42,
             margin: const EdgeInsets.only(right: 16),
             decoration: BoxDecoration(
               color: AppColors.backgroundLight,
@@ -99,7 +102,9 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
             ),
             child: IconButton(
               icon: const Icon(Icons.notifications_outlined, color: AppColors.textDark, size: 22),
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()));
+              },
             ),
           ),
         ],

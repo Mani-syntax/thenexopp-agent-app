@@ -5,7 +5,7 @@ import '../../shared/providers/websocket_provider.dart';
 import 'home_dashboard_screen.dart';
 import '../properties/properties_list_screen.dart';
 import '../earnings/earnings_screen.dart';
-import '../notifications/notifications_screen.dart';
+import '../support/support_screen.dart';
 import '../profile/profile_screen.dart';
 
 class BottomNavShell extends ConsumerStatefulWidget {
@@ -22,7 +22,7 @@ class _BottomNavShellState extends ConsumerState<BottomNavShell> {
     HomeDashboardScreen(),
     PropertiesListScreen(),
     EarningsScreen(),
-    NotificationsScreen(),
+    SupportScreen(),
     ProfileScreen(),
   ];
 
@@ -76,8 +76,8 @@ class _BottomNavShellState extends ConsumerState<BottomNavShell> {
               label: 'Earnings',
             ),
             BottomNavigationBarItem(
-              icon: Padding(padding: EdgeInsets.only(bottom: 4), child: Icon(Icons.notifications_rounded)),
-              label: 'Alerts',
+              icon: Padding(padding: EdgeInsets.only(bottom: 4), child: Icon(Icons.support_agent_rounded)),
+              label: 'Support',
             ),
             BottomNavigationBarItem(
               icon: Padding(padding: EdgeInsets.only(bottom: 4), child: Icon(Icons.person_rounded)),
