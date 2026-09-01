@@ -27,7 +27,8 @@ class _SupportScreenState extends ConsumerState<SupportScreen> with SingleTicker
   List<dynamic> _myTickets = [];
   String? _errorMessage;
 
-  static const String _supportHelpline = '+918001234567';
+  static const String _supportHelpline = '+918977505204';
+  static const String _displayHelpline = '+91 89775 05204';
 
   final List<Map<String, String>> _categories = [
     {'value': 'KYC', 'label': 'KYC & Document Verification'},
@@ -218,12 +219,17 @@ class _SupportScreenState extends ConsumerState<SupportScreen> with SingleTicker
                     children: [
                       Text(
                         'Direct Support Helpline',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
                       ),
-                      SizedBox(height: 4),
+                      SizedBox(height: 2),
                       Text(
-                        'Speak with our executive partner support desk',
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                        _displayHelpline,
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 0.5),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Partner executive assistance',
+                        style: TextStyle(color: Colors.white70, fontSize: 11),
                       ),
                     ],
                   ),
