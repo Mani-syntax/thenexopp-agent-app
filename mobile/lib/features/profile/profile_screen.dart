@@ -79,10 +79,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         CircleAvatar(
                           radius: 46,
                           backgroundColor: AppColors.emeraldSurface,
-                          child: Text(
-                            profile?['fullName']?.substring(0, 1).toUpperCase() ?? 'A',
-                            style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w800, color: AppColors.primaryEmeraldDark),
-                          ),
+                          backgroundImage: profile?['profilePhotoUrl'] != null && profile!['profilePhotoUrl'].toString().startsWith('http')
+                              ? NetworkImage(profile!['profilePhotoUrl'])
+                              : null,
+                          child: profile?['profilePhotoUrl'] == null || !profile!['profilePhotoUrl'].toString().startsWith('http')
+                              ? Text(
+                                  profile?['fullName']?.substring(0, 1).toUpperCase() ?? 'A',
+                                  style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w800, color: AppColors.primaryEmeraldDark),
+                                )
+                              : null,
                         ),
                         const SizedBox(height: 14),
                         Text(

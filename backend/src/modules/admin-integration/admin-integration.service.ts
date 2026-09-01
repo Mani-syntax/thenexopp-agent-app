@@ -82,6 +82,7 @@ export class AdminIntegrationService {
           status: a.status,
           rejectionReason: a.rejectionReason,
           fullName: a.profile ? a.profile.fullName : null,
+          profilePhotoUrl: a.profile ? a.profile.profilePhotoUrl : null,
           areaLocation: a.profile ? a.profile.areaLocation : null,
           workPlatform: a.profile ? a.profile.workPlatform : null,
           kycStatus: a.kyc ? a.kyc.status : 'NOT_SUBMITTED',

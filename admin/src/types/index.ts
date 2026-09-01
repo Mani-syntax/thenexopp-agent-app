@@ -20,6 +20,7 @@ export interface AgentSummary {
   status: AgentStatus;
   rejectionReason: string | null;
   fullName: string | null;
+  profilePhotoUrl?: string | null;
   areaLocation: string | null;
   workPlatform: string | null;
   kycStatus: KycStatus;

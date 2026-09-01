@@ -202,9 +202,17 @@ export const Agents: React.FC = () => {
                 >
                   <td className="p-4">
                     <div className="flex items-center space-x-3">
-                      <div className="h-9 w-9 rounded-xl bg-slate-100 group-hover:bg-emerald-100 group-hover:text-emerald-800 text-slate-700 font-extrabold flex items-center justify-center text-xs transition-colors">
-                        {agent.fullName ? agent.fullName.charAt(0).toUpperCase() : 'A'}
-                      </div>
+                      {agent.profilePhotoUrl ? (
+                        <img
+                          src={agent.profilePhotoUrl}
+                          alt={agent.fullName || 'Agent'}
+                          className="h-10 w-10 rounded-xl object-cover border border-slate-200 shadow-sm"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 rounded-xl bg-slate-100 group-hover:bg-emerald-100 group-hover:text-emerald-800 text-slate-700 font-extrabold flex items-center justify-center text-xs transition-colors border border-slate-200">
+                          {agent.fullName ? agent.fullName.charAt(0).toUpperCase() : 'A'}
+                        </div>
+                      )}
                       <div>
                         <span className="font-bold text-slate-900 group-hover:text-emerald-700 block transition-colors">
                           {agent.fullName || 'Unfilled Profile'}
