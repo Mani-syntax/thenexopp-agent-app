@@ -47,14 +47,62 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> checkInitialAuth() async {
-    final token = await _storage.getAccessToken();
-    final savedState = await _storage.getAgentState();
-    if (token != null && token.isNotEmpty && savedState != null) {
-      state = state.copyWith(
-        status: AuthStatus.authenticated,
-        agentState: savedState,
-      );
-    } else {
+    try {
+      final token = await _storage.getAccessToken();
+      final refreshToken = await _storage.getRefreshToken();
+      final savedState = await _storage.getAgentState();
+
+      if (token != null && token.isNotEmpty) {
+        // Instant restore so existing user opens directly to their dashboard/current screen
+        state = state.copyWith(
+          status: AuthStatus.authenticated,
+          agentState: savedState ?? 'APPROVED',
+        );
+
+        // Sync live profile state in background
+        try {
+          final dio = _ref.read(dioClientProvider).dio;
+          final res = await dio.get(ApiConstants.getProfile);
+          if (res.data['success'] == true && res.data['data'] != null) {
+            final latestStatus = res.data['data']['status'] ?? savedState ?? 'APPROVED';
+            final rejectionReason = res.data['data']['rejectionReason'];
+            await _storage.updateAgentState(latestStatus);
+            state = state.copyWith(
+              status: AuthStatus.authenticated,
+              agentState: latestStatus,
+              rejectionReason: rejectionReason,
+            );
+          }
+        } catch (_) {
+          // Token is valid; keep authenticated state even if offline
+        }
+      } else if (refreshToken != null && refreshToken.isNotEmpty) {
+        // Attempt automatic refresh if access token expired
+        try {
+          final dio = _ref.read(dioClientProvider).dio;
+          final res = await dio.post(ApiConstants.refreshToken, data: {'refreshToken': refreshToken});
+          if (res.data['success'] == true) {
+            final data = res.data['data'];
+            final agentState = data['agentState'] ?? 'APPROVED';
+            await _storage.saveTokens(
+              accessToken: data['accessToken'],
+              refreshToken: data['refreshToken'],
+              agentState: agentState,
+              userId: await _storage.getUserId() ?? '',
+              agentId: await _storage.getAgentId(),
+            );
+            state = state.copyWith(
+              status: AuthStatus.authenticated,
+              agentState: agentState,
+            );
+            return;
+          }
+        } catch (_) {}
+        state = state.copyWith(status: AuthStatus.unauthenticated);
+      } else {
+        state = state.copyWith(status: AuthStatus.unauthenticated);
+      }
+    } catch (_) {
       state = state.copyWith(status: AuthStatus.unauthenticated);
     }
   }
