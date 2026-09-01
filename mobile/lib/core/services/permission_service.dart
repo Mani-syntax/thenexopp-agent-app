@@ -59,6 +59,25 @@ class PermissionService {
     return status.isGranted;
   }
 
+  /// Proactively request all required operational permissions for the agent app
+  static Future<void> requestAllAppPermissions(BuildContext context) async {
+    try {
+      // 1. Notifications for real-time approvals & payouts
+      await Permission.notification.request();
+
+      // 2. Location for OpenStreetMap GPS area detection
+      await Permission.location.request();
+
+      // 3. Camera for capturing property & KYC photos
+      await Permission.camera.request();
+
+      // 4. Photos / Storage for picking property gallery images
+      if (await Permission.photos.request().isDenied) {
+        await Permission.storage.request();
+      }
+    } catch (_) {}
+  }
+
   static void _showOpenSettingsDialog(BuildContext context, String title, String message) {
     showDialog(
       context: context,

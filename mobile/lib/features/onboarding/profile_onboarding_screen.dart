@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/services/location_service.dart';
+import '../../core/services/permission_service.dart';
 import '../../shared/providers/dio_provider.dart';
 import '../../shared/providers/auth_provider.dart';
 
@@ -26,6 +27,14 @@ class _ProfileOnboardingScreenState extends ConsumerState<ProfileOnboardingScree
   final LocationService _locationService = LocationService();
 
   final List<String> _platforms = ['Swiggy', 'Zomato', 'Rapido', 'Zepto', 'Blinkit', 'Individual'];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      PermissionService.requestAllAppPermissions(context);
+    });
+  }
 
   Future<void> _detectLiveLocation() async {
     setState(() => _isDetectingLocation = true);
