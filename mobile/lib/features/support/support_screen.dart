@@ -185,21 +185,18 @@ class _SupportScreenState extends ConsumerState<SupportScreen> with SingleTicker
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Quick Phone Call Helpline Card
+          // Quick Phone Call Helpline Card (Pure White Card)
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppColors.primaryEmeraldDark, AppColors.primaryEmerald],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(20),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: AppColors.borderLight),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primaryEmerald.withAlpha(40),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
+                  color: Colors.black.withAlpha(6),
+                  blurRadius: 18,
+                  offset: const Offset(0, 5),
                 ),
               ],
             ),
@@ -208,10 +205,11 @@ class _SupportScreenState extends ConsumerState<SupportScreen> with SingleTicker
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withAlpha(40),
-                    shape: BoxShape.circle,
+                    color: AppColors.emeraldSurface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.emeraldBorder),
                   ),
-                  child: const Icon(Icons.support_agent_rounded, color: Colors.white, size: 32),
+                  child: const Icon(Icons.support_agent_rounded, color: AppColors.primaryEmerald, size: 28),
                 ),
                 const SizedBox(width: 16),
                 const Expanded(
@@ -219,31 +217,31 @@ class _SupportScreenState extends ConsumerState<SupportScreen> with SingleTicker
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Direct Support Helpline',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                        'Support Helpline',
+                        style: TextStyle(color: AppColors.textMedium, fontWeight: FontWeight.w600, fontSize: 13),
                       ),
                       SizedBox(height: 2),
                       Text(
                         _displayHelpline,
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 0.5),
+                        style: TextStyle(color: AppColors.primaryEmerald, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.3),
                       ),
                       SizedBox(height: 2),
                       Text(
-                        'Partner executive assistance',
-                        style: TextStyle(color: Colors.white70, fontSize: 11),
+                        'Executive partner desk',
+                        style: TextStyle(color: AppColors.textLight, fontSize: 11),
                       ),
                     ],
                   ),
                 ),
                 ElevatedButton.icon(
                   onPressed: _callSupportHelpline,
-                  icon: const Icon(Icons.phone_in_talk_rounded, size: 18, color: AppColors.primaryEmeraldDark),
-                  label: const Text('Call Now', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryEmeraldDark)),
+                  icon: const Icon(Icons.phone_in_talk_rounded, size: 16, color: Colors.white),
+                  label: const Text('Call Now', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Colors.white)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: AppColors.primaryEmeraldDark,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    backgroundColor: AppColors.primaryEmerald,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    elevation: 2,
                   ),
                 ),
               ],

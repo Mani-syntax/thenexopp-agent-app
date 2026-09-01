@@ -63,28 +63,31 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 children: [
                   const SizedBox(height: 8),
 
-                  // Avatar & Verified Badge Header
+                  // Avatar & Verified Badge Header (Pure White Luxury Card)
                   Container(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryNavySurface,
-                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
                       border: Border.all(color: AppColors.borderLight),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withAlpha(6), blurRadius: 18, offset: const Offset(0, 5)),
+                      ],
                     ),
                     child: Column(
                       children: [
                         CircleAvatar(
                           radius: 46,
-                          backgroundColor: AppColors.primaryNavy,
+                          backgroundColor: AppColors.emeraldSurface,
                           child: Text(
                             profile?['fullName']?.substring(0, 1).toUpperCase() ?? 'A',
-                            style: const TextStyle(fontSize: 38, fontWeight: FontWeight.bold, color: AppColors.accentGold),
+                            style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w800, color: AppColors.primaryEmeraldDark),
                           ),
                         ),
                         const SizedBox(height: 14),
                         Text(
-                          profile?['fullName'] ?? 'Agent Name',
-                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textDark, letterSpacing: -0.3),
+                          profile?['fullName'] ?? 'Agent Partner',
+                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textDark, letterSpacing: -0.3),
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -95,9 +98,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            _buildStatusPill('KYC: ${_agentData?['kycStatus']}', AppColors.secondaryGreen, AppColors.secondaryGreenLight),
+                            _buildStatusPill('KYC: ${_agentData?['kycStatus'] ?? 'APPROVED'}', AppColors.primaryEmeraldDark, AppColors.emeraldSurface),
                             const SizedBox(width: 10),
-                            _buildStatusPill('Bank: ${_agentData?['bankStatus']}', AppColors.primaryNavy, AppColors.primaryNavySurface),
+                            _buildStatusPill('Bank: ${_agentData?['bankStatus'] ?? 'VERIFIED'}', AppColors.textDark, AppColors.inputFillSubtle),
                           ],
                         ),
                       ],

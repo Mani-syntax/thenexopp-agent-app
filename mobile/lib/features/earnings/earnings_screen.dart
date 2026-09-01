@@ -78,31 +78,28 @@ class _EarningsScreenState extends ConsumerState<EarningsScreen> {
                     physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
                     padding: const EdgeInsets.all(20),
                     children: [
-                      // Executive Gradient Header Card
+                      // Executive White Luxury Header Card
                       Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [AppColors.primaryNavyDark, AppColors.primaryNavy],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: AppColors.borderLight),
                           boxShadow: [
-                            BoxShadow(color: AppColors.primaryNavyDark.withAlpha(50), blurRadius: 22, offset: const Offset(0, 8)),
+                            BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 20, offset: const Offset(0, 6)),
                           ],
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Total Cumulative Earnings', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
+                            const Text('Total Cumulative Earnings', style: TextStyle(color: AppColors.textMedium, fontSize: 13, fontWeight: FontWeight.w600)),
                             const SizedBox(height: 6),
                             Text(
                               '₹${(_summary['totalEarnings'] ?? 0).toStringAsFixed(2)}',
-                              style: const TextStyle(color: AppColors.primaryEmeraldLight, fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: -0.6),
+                              style: const TextStyle(color: AppColors.primaryEmerald, fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: -0.6),
                             ),
                             const SizedBox(height: 20),
-                            const Divider(color: Colors.white12, height: 1),
+                            const Divider(color: AppColors.borderLight, height: 1),
                             const SizedBox(height: 16),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -124,8 +121,8 @@ class _EarningsScreenState extends ConsumerState<EarningsScreen> {
                             onPressed: () {
                               Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentHistoryScreen()));
                             },
-                            icon: const Icon(Icons.receipt_rounded, size: 16),
-                            label: const Text('View Receipts'),
+                            icon: const Icon(Icons.receipt_rounded, size: 16, color: AppColors.primaryEmerald),
+                            label: const Text('View Receipts', style: TextStyle(color: AppColors.primaryEmerald, fontWeight: FontWeight.bold)),
                           ),
                         ],
                       ),
@@ -143,38 +140,50 @@ class _EarningsScreenState extends ConsumerState<EarningsScreen> {
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(color: AppColors.borderLight),
                               boxShadow: [
-                                BoxShadow(color: Colors.black.withAlpha(5), blurRadius: 10, offset: const Offset(0, 4)),
+                                BoxShadow(color: Colors.black.withAlpha(4), blurRadius: 10, offset: const Offset(0, 3)),
                               ],
                             ),
                             child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
                               leading: Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: isPaid ? AppColors.secondaryGreenLight : AppColors.accentGoldLight,
-                                  shape: BoxShape.circle,
+                                  color: isPaid ? AppColors.emeraldSurface : AppColors.accentGoldLight,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: isPaid ? AppColors.emeraldBorder : AppColors.accentGoldBorder),
                                 ),
                                 child: Icon(
-                                  isPaid ? Icons.check_circle_rounded : Icons.hourglass_top_rounded,
-                                  color: isPaid ? AppColors.secondaryGreenDark : AppColors.accentGoldDark,
+                                  isPaid ? Icons.check_circle_rounded : Icons.pending_actions_rounded,
+                                  color: isPaid ? AppColors.primaryEmerald : AppColors.accentGold,
                                   size: 22,
                                 ),
                               ),
-                              title: Text(e['title'] ?? 'Earning Record', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textDark)),
-                              subtitle: Text('Date: ${e['earnedDate']?.substring(0, 10) ?? ''}', style: const TextStyle(fontSize: 12, color: AppColors.textMedium)),
+                              title: Text(e['title'] ?? 'Commission', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textDark)),
+                              subtitle: Text(
+                                e['earnedDate'] != null ? e['earnedDate'].toString().substring(0, 10) : 'Recent',
+                                style: const TextStyle(color: AppColors.textLight, fontSize: 12),
+                              ),
                               trailing: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
-                                  Text('+₹${e['amount']}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isPaid ? AppColors.secondaryGreenDark : AppColors.textDark)),
-                                  const SizedBox(height: 2),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: isPaid ? AppColors.secondaryGreenLight : AppColors.accentGoldLight,
-                                      borderRadius: BorderRadius.circular(12),
+                                  Text(
+                                    '+₹${e['amount']}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 16,
+                                      color: AppColors.primaryEmerald,
+                                      letterSpacing: -0.2,
                                     ),
-                                    child: Text(e['status'], style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isPaid ? AppColors.secondaryGreenDark : AppColors.accentGoldDark)),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    isPaid ? 'PAID OUT' : 'PENDING',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      color: isPaid ? AppColors.primaryEmeraldDark : AppColors.accentGoldDark,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -191,9 +200,9 @@ class _EarningsScreenState extends ConsumerState<EarningsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: Colors.white60, fontSize: 11)),
+        Text(label, style: const TextStyle(color: AppColors.textMedium, fontSize: 12, fontWeight: FontWeight.w500)),
         const SizedBox(height: 4),
-        Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+        Text(value, style: const TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w800, fontSize: 16, letterSpacing: -0.2)),
       ],
     );
   }

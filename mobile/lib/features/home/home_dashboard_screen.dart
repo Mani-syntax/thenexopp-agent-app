@@ -344,21 +344,18 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Agent Support & Helpdesk Card
+                    // Agent Support & Helpdesk Card (Pure White Luxury Card)
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [AppColors.primaryEmeraldDark, AppColors.primaryEmerald],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(22),
+                        border: Border.all(color: AppColors.borderLight),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.primaryEmerald.withAlpha(50),
+                            color: Colors.black.withAlpha(6),
                             blurRadius: 18,
-                            offset: const Offset(0, 6),
+                            offset: const Offset(0, 5),
                           ),
                         ],
                       ),
@@ -370,19 +367,20 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withAlpha(40),
+                                  color: AppColors.emeraldSurface,
                                   borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: AppColors.emeraldBorder),
                                 ),
-                                child: const Icon(Icons.support_agent_rounded, color: Colors.white, size: 24),
+                                child: const Icon(Icons.support_agent_rounded, color: AppColors.primaryEmerald, size: 24),
                               ),
                               const SizedBox(width: 14),
                               const Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Need Help or Face an Issue?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15)),
+                                    Text('Need Help or Face an Issue?', style: TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w800, fontSize: 15)),
                                     SizedBox(height: 2),
-                                    Text('Direct partner call desk & ticket filing', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                                    Text('Direct partner call desk & ticket filing', style: TextStyle(color: AppColors.textMedium, fontSize: 12)),
                                   ],
                                 ),
                               ),
@@ -396,12 +394,12 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                                   onPressed: () {
                                     Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportScreen()));
                                   },
-                                  icon: const Icon(Icons.confirmation_number_outlined, size: 16, color: AppColors.primaryEmeraldDark),
-                                  label: const Text('Raise Ticket / Call', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.primaryEmeraldDark)),
+                                  icon: const Icon(Icons.headset_mic_rounded, size: 16, color: Colors.white),
+                                  label: const Text('Raise Ticket / Call Support', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Colors.white)),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.white,
+                                    backgroundColor: AppColors.primaryEmerald,
                                     padding: const EdgeInsets.symmetric(vertical: 12),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                                     elevation: 2,
                                   ),
                                 ),
