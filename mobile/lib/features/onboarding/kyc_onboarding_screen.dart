@@ -98,6 +98,7 @@ class _KycOnboardingScreenState extends ConsumerState<KycOnboardingScreen> {
       appBar: AppBar(title: const Text('Identity KYC (Step 2 of 3)')),
       body: SafeArea(
         child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
           padding: const EdgeInsets.all(24),
           child: Form(
             key: _formKey,

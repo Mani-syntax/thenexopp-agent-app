@@ -92,6 +92,7 @@ class _ProfileOnboardingScreenState extends ConsumerState<ProfileOnboardingScree
       appBar: AppBar(title: const Text('Agent Profile (Step 1 of 3)')),
       body: SafeArea(
         child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
           padding: const EdgeInsets.all(24),
           child: Form(
             key: _formKey,

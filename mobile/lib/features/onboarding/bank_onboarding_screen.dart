@@ -63,6 +63,7 @@ class _BankOnboardingScreenState extends ConsumerState<BankOnboardingScreen> {
       appBar: AppBar(title: const Text('Bank & Payout (Step 3 of 3)')),
       body: SafeArea(
         child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
           padding: const EdgeInsets.all(24),
           child: Form(
             key: _formKey,
