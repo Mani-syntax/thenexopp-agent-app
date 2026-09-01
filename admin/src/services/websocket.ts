@@ -12,7 +12,8 @@ export class AdminWebSocketService {
     }
 
     this.socket = io(WS_URL, {
-      transports: ['polling', 'websocket'],
+      transports: ['polling'],
+      upgrade: false,
       auth: { token },
       query: { token },
       autoConnect: true,
