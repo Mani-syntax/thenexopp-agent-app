@@ -32,7 +32,11 @@ export class AgentWebSocketGateway implements OnGatewayConnection, OnGatewayDisc
 
   async handleConnection(client: Socket) {
     try {
-      const token = client.handshake.auth?.token || client.handshake.headers?.authorization?.replace('Bearer ', '');
+      const token =
+        client.handshake.auth?.token ||
+        client.handshake.headers?.authorization?.replace('Bearer ', '') ||
+        (client.handshake.query?.token as string);
+
       if (!token) {
         this.logger.warn(`WebSocket connection attempt without token from ${client.id}`);
         client.disconnect();
@@ -53,6 +57,9 @@ export class AgentWebSocketGateway implements OnGatewayConnection, OnGatewayDisc
         }
         this.connectedAgents.get(agentId).add(client.id);
         this.logger.log(`Agent ${agentId} connected on socket ${client.id}`);
+      } else if (payload.role === 'ADMIN') {
+        client.join('admin_room');
+        this.logger.log(`Admin user connected on socket ${client.id}`);
       }
     } catch (err) {
       this.logger.error(`WebSocket authentication failed for ${client.id}: ${err.message}`);
@@ -80,5 +87,17 @@ export class AgentWebSocketGateway implements OnGatewayConnection, OnGatewayDisc
   emitToAgent(agentId: string, eventName: string, data: any) {
     this.logger.log(`Emitting event '${eventName}' to agent ${agentId}`);
     this.server.to(`agent_${agentId}`).emit(eventName, data);
+  }
+
+  // Helper method to emit live updates to admin portal
+  emitToAdmin(eventName: string, data: any) {
+    this.logger.log(`Emitting event '${eventName}' to admin_room`);
+    this.server.to('admin_room').emit(eventName, data);
+    this.server.emit(eventName, data);
+  }
+
+  // Broadcast to all connected clients
+  broadcast(eventName: string, data: any) {
+    this.server.emit(eventName, data);
   }
 }

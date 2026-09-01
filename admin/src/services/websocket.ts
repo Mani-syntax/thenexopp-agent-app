@@ -12,8 +12,9 @@ export class AdminWebSocketService {
     }
 
     this.socket = io(WS_URL, {
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'],
       auth: { token },
+      query: { token },
       autoConnect: true,
       reconnection: true,
       reconnectionAttempts: 10,
