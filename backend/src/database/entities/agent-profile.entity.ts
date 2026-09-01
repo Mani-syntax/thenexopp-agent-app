@@ -25,8 +25,8 @@ export class AgentProfileEntity {
   @Column({ type: 'varchar', length: 20 })
   gender: string;
 
-  @Column({ type: 'varchar', length: 100 })
-  workPlatform: string; // Swiggy, Zomato, Rapido, Zepto, Blinkit, Individual, etc.
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  workPlatform?: string; // e.g. Agent, Driver, Business, Freelancer, etc.
 
   @Column({ type: 'varchar', length: 500, nullable: true })
   profilePhotoUrl: string;

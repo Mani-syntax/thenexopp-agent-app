@@ -128,7 +128,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       children: [
                         _buildDetailRow(Icons.location_on_rounded, 'Operating Location', profile?['areaLocation'] ?? 'N/A'),
                         const Divider(color: AppColors.borderLight, height: 24),
-                        _buildDetailRow(Icons.work_rounded, 'Work Platform', profile?['workPlatform'] ?? 'Individual'),
+                        _buildDetailRow(Icons.work_outline_rounded, 'Occupation / Work', profile?['workPlatform'] ?? 'Partner Agent'),
                         const Divider(color: AppColors.borderLight, height: 24),
                         _buildDetailRow(Icons.cake_rounded, 'Age & Gender', '${profile?['age'] ?? 'N/A'} yrs • ${profile?['gender'] ?? ''}'),
                       ],

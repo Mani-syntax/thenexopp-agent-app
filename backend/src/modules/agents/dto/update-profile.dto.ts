@@ -24,10 +24,10 @@ export class UpdateProfileDto {
   @IsString()
   gender: string;
 
-  @ApiProperty({ example: 'Swiggy', description: 'Swiggy, Zomato, Rapido, Zepto, Blinkit, Individual' })
-  @IsNotEmpty()
+  @ApiProperty({ example: 'Real Estate Agent', description: 'Current occupation or work (optional)', required: false })
+  @IsOptional()
   @IsString()
-  workPlatform: string;
+  workPlatform?: string;
 
   @ApiProperty({ example: 'https://minio.thenexopp.com/profile.jpg', required: false })
   @IsOptional()

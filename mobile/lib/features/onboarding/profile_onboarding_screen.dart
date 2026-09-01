@@ -21,16 +21,14 @@ class _ProfileOnboardingScreenState extends ConsumerState<ProfileOnboardingScree
   final _nameController = TextEditingController();
   final _areaController = TextEditingController();
   final _ageController = TextEditingController();
+  final _workController = TextEditingController();
 
   String _gender = 'Male';
-  String _workPlatform = 'Swiggy';
   XFile? _profilePhotoFile;
   bool _isLoading = false;
   bool _isDetectingLocation = false;
   final ImagePicker _picker = ImagePicker();
   final LocationService _locationService = LocationService();
-
-  final List<String> _platforms = ['Swiggy', 'Zomato', 'Rapido', 'Zepto', 'Blinkit', 'Individual'];
 
   @override
   void initState() {
@@ -170,7 +168,7 @@ class _ProfileOnboardingScreenState extends ConsumerState<ProfileOnboardingScree
         'areaLocation': _areaController.text.trim(),
         'age': int.parse(_ageController.text.trim()),
         'gender': _gender,
-        'workPlatform': _workPlatform,
+        'workPlatform': _workController.text.trim().isNotEmpty ? _workController.text.trim() : null,
         'profilePhotoUrl': photoKey,
       });
 
@@ -335,11 +333,13 @@ class _ProfileOnboardingScreenState extends ConsumerState<ProfileOnboardingScree
                   onChanged: (val) => setState(() => _gender = val!),
                 ),
                 const SizedBox(height: 20),
-                DropdownButtonFormField<String>(
-                  initialValue: _workPlatform,
-                  decoration: const InputDecoration(labelText: 'Primary Work Platform', prefixIcon: Icon(Icons.work_rounded)),
-                  items: _platforms.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
-                  onChanged: (val) => setState(() => _workPlatform = val!),
+                TextFormField(
+                  controller: _workController,
+                  decoration: const InputDecoration(
+                    labelText: 'Current Work / Occupation (Optional)',
+                    hintText: 'e.g. Real Estate Agent, Delivery, Business, Freelancer',
+                    prefixIcon: Icon(Icons.work_outline_rounded),
+                  ),
                 ),
                 const SizedBox(height: 32),
                 ElevatedButton(
