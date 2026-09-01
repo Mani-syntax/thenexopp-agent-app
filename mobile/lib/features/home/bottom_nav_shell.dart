@@ -41,9 +41,16 @@ class _BottomNavShellState extends ConsumerState<BottomNavShell> {
         children: _pages,
       ),
       bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: Colors.white,
-          border: Border(top: BorderSide(color: AppColors.borderLight, width: 1)),
+          border: const Border(top: BorderSide(color: AppColors.borderLight, width: 1)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(8),
+              blurRadius: 16,
+              offset: const Offset(0, -4),
+            ),
+          ],
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
@@ -51,16 +58,31 @@ class _BottomNavShellState extends ConsumerState<BottomNavShell> {
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
           elevation: 0,
-          selectedItemColor: AppColors.primaryNavy,
+          selectedItemColor: AppColors.primaryEmerald,
           unselectedItemColor: AppColors.textLight,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-          unselectedLabelStyle: const TextStyle(fontSize: 12),
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12, letterSpacing: -0.2),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 12),
           items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.dashboard_rounded), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.home_work_rounded), label: 'Properties'),
-            BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_rounded), label: 'Earnings'),
-            BottomNavigationBarItem(icon: Icon(Icons.notifications_rounded), label: 'Alerts'),
-            BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Profile'),
+            BottomNavigationBarItem(
+              icon: Padding(padding: EdgeInsets.only(bottom: 4), child: Icon(Icons.dashboard_rounded)),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Padding(padding: EdgeInsets.only(bottom: 4), child: Icon(Icons.home_work_rounded)),
+              label: 'Properties',
+            ),
+            BottomNavigationBarItem(
+              icon: Padding(padding: EdgeInsets.only(bottom: 4), child: Icon(Icons.account_balance_wallet_rounded)),
+              label: 'Earnings',
+            ),
+            BottomNavigationBarItem(
+              icon: Padding(padding: EdgeInsets.only(bottom: 4), child: Icon(Icons.notifications_rounded)),
+              label: 'Alerts',
+            ),
+            BottomNavigationBarItem(
+              icon: Padding(padding: EdgeInsets.only(bottom: 4), child: Icon(Icons.person_rounded)),
+              label: 'Profile',
+            ),
           ],
         ),
       ),

@@ -42,63 +42,212 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.backgroundLight,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 40),
-                const HumanAgentLogo(size: 130),
-                const SizedBox(height: 48),
+                // Top Trust Badge
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.emeraldSurface,
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(color: AppColors.emeraldBorder),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.verified_rounded, size: 15, color: AppColors.primaryEmerald),
+                        SizedBox(width: 6),
+                        Text(
+                          'Official Partner App',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primaryEmeraldDark,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 28),
+
+                // Logo Container with soft glow
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primaryEmerald.withAlpha(20),
+                          blurRadius: 24,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: const HumanAgentLogo(size: 100),
+                  ),
+                ),
+                const SizedBox(height: 28),
+
+                // Title & Subtitle
                 const Text(
-                  'Welcome Agent',
-                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: AppColors.textDark),
+                  'Partner Sign In',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textDark,
+                    letterSpacing: -0.6,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Enter your mobile number to sign in or register as an official TheNexopp partner.',
-                  style: TextStyle(fontSize: 14, color: AppColors.textMedium),
+                  'Sign in to access your properties, track live commissions, and manage transactions.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textMedium,
+                    height: 1.4,
+                  ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 36),
-                TextFormField(
-                  controller: _mobileController,
-                  keyboardType: TextInputType.phone,
-                  maxLength: 10,
-                  decoration: const InputDecoration(
-                    labelText: 'Mobile Number',
-                    prefixIcon: Icon(Icons.phone_android_rounded, color: AppColors.primaryNavy),
-                    prefixText: '+91 ',
-                    hintText: 'Enter 10 digit mobile number',
-                    counterText: '',
+                const SizedBox(height: 32),
+
+                // White Card Form Container
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: AppColors.borderLight),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withAlpha(8),
+                        blurRadius: 20,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
                   ),
-                  validator: (value) {
-                    if (value == null || value.trim().length != 10) {
-                      return 'Please enter valid 10-digit Indian mobile number';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 28),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _handleSendOtp,
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 24,
-                          width: 24,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
-                        )
-                      : const Text('Send OTP'),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Text(
+                          'Mobile Number',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textDark,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _mobileController,
+                          keyboardType: TextInputType.phone,
+                          maxLength: 10,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textDark,
+                            letterSpacing: 1.2,
+                          ),
+                          decoration: InputDecoration(
+                            prefixIcon: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              margin: const EdgeInsets.only(right: 12),
+                              decoration: const BoxDecoration(
+                                border: Border(right: BorderSide(color: AppColors.borderLight)),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.phone_iphone_rounded, color: AppColors.primaryEmerald, size: 20),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    '+91',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 15,
+                                      color: AppColors.textDark,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            hintText: 'Enter 10-digit number',
+                            hintStyle: const TextStyle(
+                              color: AppColors.textLight,
+                              fontSize: 14,
+                              fontWeight: FontWeight.normal,
+                              letterSpacing: 0,
+                            ),
+                            counterText: '',
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().length != 10) {
+                              return 'Please enter valid 10-digit mobile number';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Action Button
+                        ElevatedButton(
+                          onPressed: _isLoading ? null : _handleSendOtp,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryEmerald,
+                            minimumSize: const Size(double.infinity, 54),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            elevation: 3,
+                            shadowColor: AppColors.primaryEmerald.withAlpha(100),
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  height: 22,
+                                  width: 22,
+                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                                )
+                              : const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      'Get Verification OTP',
+                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                                    ),
+                                    SizedBox(width: 8),
+                                    Icon(Icons.arrow_forward_rounded, size: 18),
+                                  ],
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 24),
-                const Text(
-                  'By proceeding, you agree to TheNexopp Agent Terms & Privacy Policy.',
-                  style: TextStyle(fontSize: 12, color: AppColors.textLight),
-                  textAlign: TextAlign.center,
+
+                // Footer Info
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.lock_outline_rounded, size: 14, color: AppColors.textLight),
+                    SizedBox(width: 6),
+                    Text(
+                      'Protected by 256-Bit SSL Encryption',
+                      style: TextStyle(fontSize: 12, color: AppColors.textMedium, fontWeight: FontWeight.w500),
+                    ),
+                  ],
                 ),
               ],
             ),

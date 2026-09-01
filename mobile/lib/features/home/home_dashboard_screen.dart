@@ -65,44 +65,61 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
         title: Row(
           children: [
-            Image.asset('assets/images/app_logo.png', height: 28, errorBuilder: (_, __, ___) => const Icon(Icons.business_center_rounded)),
+            Image.asset(
+              'assets/images/app_logo.png',
+              height: 32,
+              errorBuilder: (_, __, ___) => const Row(
+                children: [
+                  Icon(Icons.business_center_rounded, color: AppColors.primaryEmerald, size: 24),
+                  SizedBox(width: 8),
+                  Text('TheNexopp', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: AppColors.textDark)),
+                ],
+              ),
+            ),
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: AppColors.primaryNavy),
-            onPressed: () {},
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            decoration: BoxDecoration(
+              color: AppColors.backgroundLight,
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.borderLight),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.notifications_outlined, color: AppColors.textDark, size: 22),
+              onPressed: () {},
+            ),
           ),
-          const SizedBox(width: 8),
         ],
       ),
       body: RefreshIndicator(
+        color: AppColors.primaryEmerald,
         onRefresh: _fetchDashboardData,
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(child: CircularProgressIndicator(color: AppColors.primaryEmerald))
             : SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Agent Greeting Header Card
+                    // Agent Executive Card (White Card with Emerald Accent)
                     Container(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [AppColors.primaryNavy, AppColors.primaryNavyLight],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(16),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: AppColors.borderLight),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.primaryNavy.withAlpha(30),
-                            blurRadius: 16,
+                            color: Colors.black.withAlpha(8),
+                            blurRadius: 20,
                             offset: const Offset(0, 6),
                           ),
                         ],
@@ -116,63 +133,97 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Welcome back,', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                                  const Text(
+                                    'Welcome back,',
+                                    style: TextStyle(color: AppColors.textMedium, fontSize: 13, fontWeight: FontWeight.w500),
+                                  ),
+                                  const SizedBox(height: 2),
                                   Text(
                                     _agentName,
-                                    style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: -0.3),
+                                    style: const TextStyle(
+                                      color: AppColors.textDark,
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: -0.4,
+                                    ),
                                   ),
                                 ],
                               ),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: AppColors.secondaryGreen.withAlpha(40),
+                                  color: AppColors.emeraldSurface,
                                   borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: AppColors.secondaryGreenBorder.withAlpha(100)),
+                                  border: Border.all(color: AppColors.emeraldBorder),
                                 ),
                                 child: const Row(
                                   children: [
-                                    Icon(Icons.check_circle_rounded, color: Colors.white, size: 14),
+                                    Icon(Icons.verified_rounded, color: AppColors.primaryEmerald, size: 14),
                                     SizedBox(width: 4),
-                                    Text('Verified Agent', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                    Text(
+                                      'Verified Partner',
+                                      style: TextStyle(
+                                        color: AppColors.primaryEmeraldDark,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 20),
-                          const Divider(color: Colors.white24, height: 1),
-                          const SizedBox(height: 16),
+                          const Divider(color: AppColors.borderSubtle, height: 1),
+                          const SizedBox(height: 20),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Total Net Earnings', style: TextStyle(color: Colors.white60, fontSize: 11)),
+                                  const Text('Total Net Earnings', style: TextStyle(color: AppColors.textMedium, fontSize: 12, fontWeight: FontWeight.w500)),
+                                  const SizedBox(height: 4),
                                   Text(
                                     '₹${_totalEarnings.toStringAsFixed(0)}',
-                                    style: const TextStyle(color: AppColors.accentGold, fontSize: 24, fontWeight: FontWeight.bold),
+                                    style: const TextStyle(
+                                      color: AppColors.primaryEmerald,
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: -0.5,
+                                    ),
                                   ),
                                 ],
                               ),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Pending Payout', style: TextStyle(color: Colors.white60, fontSize: 11)),
+                                  const Text('Pending Payout', style: TextStyle(color: AppColors.textMedium, fontSize: 12, fontWeight: FontWeight.w500)),
+                                  const SizedBox(height: 4),
                                   Text(
                                     '₹${_pendingEarnings.toStringAsFixed(0)}',
-                                    style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                                    style: const TextStyle(
+                                      color: AppColors.accentGold,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: -0.3,
+                                    ),
                                   ),
                                 ],
                               ),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Listings', style: TextStyle(color: Colors.white60, fontSize: 11)),
+                                  const Text('Listings', style: TextStyle(color: AppColors.textMedium, fontSize: 12, fontWeight: FontWeight.w500)),
+                                  const SizedBox(height: 4),
                                   Text(
                                     '$_propertyCount Active',
-                                    style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                                    style: const TextStyle(
+                                      color: AppColors.textDark,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: -0.3,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -181,43 +232,66 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
 
                     // Primary CTA Button
                     ElevatedButton.icon(
                       onPressed: () => context.push('/properties/add'),
-                      icon: const Icon(Icons.add_business_rounded, size: 22),
+                      icon: const Icon(Icons.add_business_rounded, size: 20),
                       label: const Text('+ Add Property / Business Listing'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.secondaryGreen,
+                        backgroundColor: AppColors.primaryEmerald,
                         minimumSize: const Size(double.infinity, 56),
-                        elevation: 2,
-                        shadowColor: AppColors.secondaryGreen.withAlpha(60),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        elevation: 3,
+                        shadowColor: AppColors.primaryEmerald.withAlpha(100),
                       ),
                     ),
                     const SizedBox(height: 28),
 
-                    // Executive Metric Grid Cards
-                    const Text('Performance Summary', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textDark, letterSpacing: -0.3)),
+                    // Performance Summary Section
+                    const Text(
+                      'Performance Summary',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textDark,
+                        letterSpacing: -0.4,
+                      ),
+                    ),
                     const SizedBox(height: 14),
                     Row(
                       children: [
-                        Expanded(child: _buildMetricTile('Paid Payouts', '₹${_paidAmount.toStringAsFixed(0)}', Icons.task_alt_rounded, AppColors.secondaryGreen)),
+                        Expanded(
+                          child: _buildMetricTile(
+                            'Paid Payouts',
+                            '₹${_paidAmount.toStringAsFixed(0)}',
+                            Icons.task_alt_rounded,
+                            AppColors.primaryEmerald,
+                          ),
+                        ),
                         const SizedBox(width: 14),
-                        Expanded(child: _buildMetricTile('Pending Verification', '₹${_pendingEarnings.toStringAsFixed(0)}', Icons.hourglass_top_rounded, AppColors.accentGold)),
+                        Expanded(
+                          child: _buildMetricTile(
+                            'Pending Verification',
+                            '₹${_pendingEarnings.toStringAsFixed(0)}',
+                            Icons.hourglass_top_rounded,
+                            AppColors.accentGold,
+                          ),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 16),
 
                     // Status & Compliance Card
                     Container(
-                      padding: const EdgeInsets.all(18),
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: AppColors.borderLight),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 12, offset: const Offset(0, 4)),
+                          BoxShadow(color: Colors.black.withAlpha(6), blurRadius: 16, offset: const Offset(0, 4)),
                         ],
                       ),
                       child: Row(
@@ -225,30 +299,34 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: AppColors.secondaryGreenLight,
-                              borderRadius: BorderRadius.circular(12),
+                              color: AppColors.emeraldSurface,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: AppColors.emeraldBorder),
                             ),
-                            child: const Icon(Icons.verified_user_rounded, color: AppColors.secondaryGreen, size: 28),
+                            child: const Icon(Icons.shield_outlined, color: AppColors.primaryEmerald, size: 26),
                           ),
                           const SizedBox(width: 14),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('KYC Identity Verification', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textDark)),
+                                const Text(
+                                  'KYC Identity Verification',
+                                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.textDark),
+                                ),
                                 const SizedBox(height: 2),
-                                Text('Identity Status: $_kycStatus', style: const TextStyle(fontSize: 13, color: AppColors.textMedium)),
+                                Text('Account Status: $_kycStatus', style: const TextStyle(fontSize: 13, color: AppColors.textMedium)),
                               ],
                             ),
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: AppColors.secondaryGreenLight,
+                              color: AppColors.emeraldSurface,
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: AppColors.secondaryGreenBorder),
+                              border: Border.all(color: AppColors.emeraldBorder),
                             ),
-                            child: const Text('APPROVED', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.secondaryGreenDark)),
+                            child: const Text('APPROVED', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.primaryEmeraldDark)),
                           ),
                         ],
                       ),
@@ -265,27 +343,35 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.borderLight),
         boxShadow: [
-          BoxShadow(color: Colors.black.withAlpha(6), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(color: Colors.black.withAlpha(6), blurRadius: 14, offset: const Offset(0, 4)),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: color.withAlpha(20),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: color, size: 22),
+            child: Icon(icon, color: color, size: 20),
           ),
           const SizedBox(height: 14),
-          Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textDark, letterSpacing: -0.3)),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textDark,
+              letterSpacing: -0.4,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(title, style: const TextStyle(fontSize: 12, color: AppColors.textMedium, fontWeight: FontWeight.w500)),
+          Text(title, style: const TextStyle(fontSize: 12, color: AppColors.textMedium, fontWeight: FontWeight.w600)),
         ],
       ),
     );
