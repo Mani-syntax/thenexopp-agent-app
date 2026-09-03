@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 # ==============================================================================
 # TheNexopp Agent - Master VPS Setup & Deployment Script
 # Target: /opt/thenexopp-agent (Ubuntu 22.04 / 24.04 LTS)
@@ -11,8 +11,12 @@ echo "🚀 Starting TheNexopp Agent Production Setup in $APP_DIR..."
 
 # 1. Update system packages
 echo "📦 Updating apt packages..."
-apt-get update -y && apt-get upgrade -y
-apt-get install -y curl git nginx ufw build-essential unzip sqlite3
+apt-get update -y
+apt-get install -y curl git nginx ufw build-essential unzip sqlite3 dos2unix
+
+# Clean line endings and BOMs
+dos2unix $APP_DIR/deploy/* || true
+sed -i '1s/^ï»¿//' $APP_DIR/deploy/nginx-thenexopp.conf || true
 
 # 2. Install Node.js 20 LTS
 if ! command -v node &> /dev/null; then
@@ -57,6 +61,8 @@ fi
 # 7. Configure Nginx Reverse Proxy
 echo "🌐 Configuring Nginx..."
 cp "$APP_DIR/deploy/nginx-thenexopp.conf" /etc/nginx/sites-available/thenexopp
+sed -i '1s/^ï»¿//' /etc/nginx/sites-available/thenexopp || true
+dos2unix /etc/nginx/sites-available/thenexopp || true
 ln -sf /etc/nginx/sites-available/thenexopp /etc/nginx/sites-enabled/thenexopp
 rm -f /etc/nginx/sites-enabled/default
 nginx -t
