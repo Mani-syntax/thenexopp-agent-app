@@ -1,12 +1,13 @@
 ﻿#!/usr/bin/env bash
 # ==============================================================================
 # TheNexopp Agent - Master VPS Setup & Deployment Script
-# Target OS: Ubuntu 22.04 / 24.04 LTS (Hostinger VPS)
+# Target: /opt/thenexopp-agent (Ubuntu 22.04 / 24.04 LTS)
 # ==============================================================================
 
 set -e
 
-echo "🚀 Starting TheNexopp Agent Production VPS Setup..."
+APP_DIR="/opt/thenexopp-agent"
+echo "🚀 Starting TheNexopp Agent Production Setup in $APP_DIR..."
 
 # 1. Update system packages
 echo "📦 Updating apt packages..."
@@ -24,39 +25,38 @@ fi
 echo "⚡ Installing PM2..."
 npm install -g pm2
 
-# 4. Create App Directory structure
-echo "📁 Setting up /var/www/thenexopp..."
-mkdir -p /var/www/thenexopp
-mkdir -p /var/www/thenexopp/backend/uploads/private-kyc
-mkdir -p /var/www/thenexopp/backend/uploads/property-images
-mkdir -p /var/www/thenexopp/backend/uploads/payment-proofs
-mkdir -p /var/www/thenexopp/backend/uploads/common
+# 4. Create App Directory & Storage structure
+echo "📁 Setting up persistent upload directories..."
+mkdir -p "$APP_DIR/backend/uploads/private-kyc"
+mkdir -p "$APP_DIR/backend/uploads/property-images"
+mkdir -p "$APP_DIR/backend/uploads/payment-proofs"
+mkdir -p "$APP_DIR/backend/uploads/common"
 
-# Grant read/write permissions for uploads
-chmod -R 777 /var/www/thenexopp/backend/uploads
+# Grant full read/write permissions for persistent uploads
+chmod -R 777 "$APP_DIR/backend/uploads"
 
 # 5. Build and deploy Backend
 echo "🔨 Building Backend API & WebSocket Server..."
-cd /var/www/thenexopp/backend
+cd "$APP_DIR/backend"
 npm install
 npm run build
 
 # 6. Build and deploy Admin Portal
 echo "🔨 Building Admin Management Portal..."
-cd /var/www/thenexopp/admin
+cd "$APP_DIR/admin"
 npm install
 npm run build
 
 # 6.5 Deploy Mobile App (Flutter Web)
 echo "📱 Deploying Mobile Web App..."
-mkdir -p /var/www/thenexopp/mobile/build/web
-if [ -f /var/www/thenexopp/deploy/mobile-web.tar.gz ]; then
-    tar -xzf /var/www/thenexopp/deploy/mobile-web.tar.gz -C /var/www/thenexopp/mobile/build/web
+mkdir -p "$APP_DIR/mobile/build/web"
+if [ -f "$APP_DIR/deploy/mobile-web.tar.gz" ]; then
+    tar -xzf "$APP_DIR/deploy/mobile-web.tar.gz" -C "$APP_DIR/mobile/build/web"
 fi
 
 # 7. Configure Nginx Reverse Proxy
 echo "🌐 Configuring Nginx..."
-cp /var/www/thenexopp/deploy/nginx-thenexopp.conf /etc/nginx/sites-available/thenexopp
+cp "$APP_DIR/deploy/nginx-thenexopp.conf" /etc/nginx/sites-available/thenexopp
 ln -sf /etc/nginx/sites-available/thenexopp /etc/nginx/sites-enabled/thenexopp
 rm -f /etc/nginx/sites-enabled/default
 nginx -t
@@ -65,7 +65,8 @@ systemctl enable nginx
 
 # 8. Start Backend with PM2
 echo "⚡ Starting PM2 Services..."
-cd /var/www/thenexopp/backend
+cd "$APP_DIR/backend"
+pm2 delete thenexopp-backend || true
 pm2 start ecosystem.config.cjs
 pm2 save
 pm2 startup systemd -u root --hp /root || true
@@ -86,5 +87,5 @@ echo "👉 Mobile Agent App:    http://$(curl -s ifconfig.me)/"
 echo "👉 Admin Management:    http://$(curl -s ifconfig.me):3001  (or http://$(curl -s ifconfig.me)/admin)"
 echo "👉 Backend REST API:    http://$(curl -s ifconfig.me)/api/v1"
 echo "👉 WebSocket Gateway:   ws://$(curl -s ifconfig.me)/ws"
-echo "👉 Uploads Storage:     /var/www/thenexopp/backend/uploads"
+echo "👉 Uploads Storage:     $APP_DIR/backend/uploads"
 echo "=============================================================================="
