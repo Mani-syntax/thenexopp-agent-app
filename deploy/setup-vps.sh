@@ -47,6 +47,13 @@ cd /var/www/thenexopp/admin
 npm install
 npm run build
 
+# 6.5 Deploy Mobile App (Flutter Web)
+echo "📱 Deploying Mobile Web App..."
+mkdir -p /var/www/thenexopp/mobile/build/web
+if [ -f /var/www/thenexopp/deploy/mobile-web.tar.gz ]; then
+    tar -xzf /var/www/thenexopp/deploy/mobile-web.tar.gz -C /var/www/thenexopp/mobile/build/web
+fi
+
 # 7. Configure Nginx Reverse Proxy
 echo "🌐 Configuring Nginx..."
 cp /var/www/thenexopp/deploy/nginx-thenexopp.conf /etc/nginx/sites-available/thenexopp
