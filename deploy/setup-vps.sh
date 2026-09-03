@@ -12,11 +12,7 @@ echo "🚀 Starting TheNexopp Agent Production Setup in $APP_DIR..."
 # 1. Update system packages
 echo "📦 Updating apt packages..."
 apt-get update -y
-apt-get install -y curl git nginx ufw build-essential unzip sqlite3 dos2unix
-
-# Clean line endings and BOMs
-dos2unix $APP_DIR/deploy/* || true
-sed -i '1s/^ï»¿//' $APP_DIR/deploy/nginx-thenexopp.conf || true
+apt-get install -y curl git nginx ufw build-essential unzip sqlite3
 
 # 2. Install Node.js 20 LTS
 if ! command -v node &> /dev/null; then
@@ -60,13 +56,102 @@ fi
 
 # 7. Configure Nginx Reverse Proxy
 echo "🌐 Configuring Nginx..."
-cp "$APP_DIR/deploy/nginx-thenexopp.conf" /etc/nginx/sites-available/thenexopp
-sed -i '1s/^ï»¿//' /etc/nginx/sites-available/thenexopp || true
-dos2unix /etc/nginx/sites-available/thenexopp || true
+rm -f /etc/nginx/sites-enabled/*
+rm -f /etc/nginx/conf.d/*
+
+cat << 'NGINX_EOF' > /etc/nginx/sites-available/thenexopp
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+
+    client_max_body_size 50M;
+
+    # 1. API Reverse Proxy
+    location /api/v1/ {
+        proxy_pass http://127.0.0.1:3000/api/v1/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 90s;
+    }
+
+    # 2. WebSocket Gateway (Socket.io)
+    location /ws/ {
+        proxy_pass http://127.0.0.1:3000/ws/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
+    }
+
+    # 3. Direct Storage Viewer & Cache for Uploaded Photos
+    location /uploads/ {
+        alias /opt/thenexopp-agent/backend/uploads/;
+        autoindex off;
+        expires 30d;
+        add_header Cache-Control "public, no-transform";
+        try_files $uri =404;
+    }
+
+    # 4. Admin Management Dashboard (served on /admin or port 3001)
+    location /admin {
+        alias /opt/thenexopp-agent/admin/dist;
+        index index.html;
+        try_files $uri $uri/ /admin/index.html;
+    }
+
+    # 5. Mobile Agent App (Flutter Web)
+    location / {
+        root /opt/thenexopp-agent/mobile/build/web;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+    }
+}
+
+# Dedicated Admin Virtual Host (Port 3001)
+server {
+    listen 3001;
+    listen [::]:3001;
+    server_name _;
+
+    client_max_body_size 50M;
+
+    root /opt/thenexopp-agent/admin/dist;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location /api/v1/ {
+        proxy_pass http://127.0.0.1:3000/api/v1/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    location /ws/ {
+        proxy_pass http://127.0.0.1:3000/ws/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+    }
+}
+NGINX_EOF
+
 ln -sf /etc/nginx/sites-available/thenexopp /etc/nginx/sites-enabled/thenexopp
-rm -f /etc/nginx/sites-enabled/default
 nginx -t
-systemctl reload nginx
+systemctl reload nginx || systemctl restart nginx
 systemctl enable nginx
 
 # 8. Start Backend with PM2
