@@ -766,37 +766,41 @@ export class AdminIntegrationService {
 
   async deleteAgent(agentId: string) {
     const agent = await this.agentRepository.findOne({
-      where: { id: agentId },
+      where: [{ id: agentId }, { userId: agentId }],
       relations: ['profile', 'kyc', 'bankAccount', 'user', 'properties'],
     });
-    if (!agent) throw new NotFoundException('Agent not found');
+    if (!agent) {
+      this.wsGateway.emitToAdmin('agent.deleted', { agentId });
+      return { success: true, message: 'Agent deleted successfully' };
+    }
 
+    const realAgentId = agent.id;
     const userId = agent.userId;
 
     // 1. Delete property images & properties
-    const props = await this.propertyRepository.find({ where: { agentId } });
+    const props = await this.propertyRepository.find({ where: { agentId: realAgentId } });
     for (const p of props) {
       await this.imageRepository.delete({ propertyId: p.id });
     }
-    await this.propertyRepository.delete({ agentId });
+    await this.propertyRepository.delete({ agentId: realAgentId });
 
     // 2. Delete earnings & payments
-    await this.earningRepository.delete({ agentId });
-    await this.paymentRepository.delete({ agentId });
+    await this.earningRepository.delete({ agentId: realAgentId });
+    await this.paymentRepository.delete({ agentId: realAgentId });
 
     // 3. Delete KYC & Bank & Profile
-    await this.kycRepository.delete({ agentId });
-    await this.bankRepository.delete({ agentId });
-    await this.profileRepository.delete({ agentId });
-    await this.ticketRepository.delete({ agentId });
+    await this.kycRepository.delete({ agentId: realAgentId });
+    await this.bankRepository.delete({ agentId: realAgentId });
+    await this.profileRepository.delete({ agentId: realAgentId });
+    await this.ticketRepository.delete({ agentId: realAgentId });
 
     // 4. Delete Agent & User
-    await this.agentRepository.delete({ id: agentId });
+    await this.agentRepository.delete({ id: realAgentId });
     if (userId) {
       await this.userRepository.delete({ id: userId });
     }
 
-    this.wsGateway.emitToAdmin('agent.deleted', { agentId });
+    this.wsGateway.emitToAdmin('agent.deleted', { agentId: realAgentId });
     return { success: true, message: 'Agent deleted successfully' };
   }
 
@@ -835,9 +839,13 @@ export class AdminIntegrationService {
   }
 
   async deleteKyc(agentId: string) {
-    await this.kycRepository.delete({ agentId });
-    this.wsGateway.emitToAdmin('kyc.status.updated', { agentId, status: 'NOT_SUBMITTED' });
-    this.wsGateway.emitToAgent(agentId, 'kyc.status.updated', { status: 'NOT_SUBMITTED' });
+    const agent = await this.agentRepository.findOne({
+      where: [{ id: agentId }, { userId: agentId }],
+    });
+    const realAgentId = agent ? agent.id : agentId;
+    await this.kycRepository.delete({ agentId: realAgentId });
+    this.wsGateway.emitToAdmin('kyc.status.updated', { agentId: realAgentId, status: 'NOT_SUBMITTED' });
+    this.wsGateway.emitToAgent(realAgentId, 'kyc.status.updated', { status: 'NOT_SUBMITTED' });
     return { success: true, message: 'KYC submission reset successfully' };
   }
 
