@@ -2,6 +2,7 @@
 # ==============================================================================
 # TheNexopp Agent - Master VPS Setup & Deployment Script
 # Target: /opt/thenexopp-agent (Ubuntu 22.04 / 24.04 LTS)
+# Domain: api.thenexopp.com
 # ==============================================================================
 
 set -e
@@ -12,7 +13,7 @@ echo "🚀 Starting TheNexopp Agent Production Setup in $APP_DIR..."
 # 1. Update system packages
 echo "📦 Updating apt packages..."
 apt-get update -y
-apt-get install -y curl git nginx ufw build-essential unzip sqlite3
+apt-get install -y curl git nginx ufw build-essential unzip sqlite3 certbot python3-certbot-nginx
 
 # 2. Install Node.js 20 LTS
 if ! command -v node &> /dev/null; then
@@ -54,20 +55,21 @@ if [ -f "$APP_DIR/deploy/mobile-web.tar.gz" ]; then
     tar -xzf "$APP_DIR/deploy/mobile-web.tar.gz" -C "$APP_DIR/mobile/build/web"
 fi
 
-# 7. Configure Nginx Reverse Proxy
-echo "🌐 Configuring Nginx..."
+# 7. Configure Nginx Reverse Proxy for api.thenexopp.com
+echo "🌐 Configuring Nginx for api.thenexopp.com..."
 rm -f /etc/nginx/sites-enabled/*
 rm -f /etc/nginx/conf.d/*
 
 cat << 'NGINX_EOF' > /etc/nginx/sites-available/thenexopp
+# Main Server Block for api.thenexopp.com & VPS IP
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
-    server_name _;
+    server_name api.thenexopp.com admin.thenexopp.com _;
 
     client_max_body_size 50M;
 
-    # 1. API Reverse Proxy
+    # 1. Backend REST API
     location /api/v1/ {
         proxy_pass http://127.0.0.1:3000/api/v1/;
         proxy_http_version 1.1;
@@ -101,14 +103,14 @@ server {
         try_files $uri =404;
     }
 
-    # 4. Admin Management Dashboard (served on /admin or port 3001)
+    # 4. Admin Management Portal (at https://api.thenexopp.com/admin)
     location /admin {
         alias /opt/thenexopp-agent/admin/dist;
         index index.html;
         try_files $uri $uri/ /admin/index.html;
     }
 
-    # 5. Mobile Agent App (Flutter Web)
+    # 5. Mobile Agent App (at https://api.thenexopp.com/)
     location / {
         root /opt/thenexopp-agent/mobile/build/web;
         index index.html;
@@ -120,7 +122,7 @@ server {
 server {
     listen 3001;
     listen [::]:3001;
-    server_name _;
+    server_name api.thenexopp.com admin.thenexopp.com _;
 
     client_max_body_size 50M;
 
@@ -173,10 +175,10 @@ ufw allow 8080/tcp
 ufw --force enable
 
 echo "=============================================================================="
-echo "🎉 DEPLOYMENT COMPLETE! All services are active and running:"
-echo "👉 Mobile Agent App:    http://$(curl -s ifconfig.me)/"
-echo "👉 Admin Management:    http://$(curl -s ifconfig.me):3001  (or http://$(curl -s ifconfig.me)/admin)"
-echo "👉 Backend REST API:    http://$(curl -s ifconfig.me)/api/v1"
-echo "👉 WebSocket Gateway:   ws://$(curl -s ifconfig.me)/ws"
+echo "🎉 DEPLOYMENT COMPLETE FOR api.thenexopp.com!"
+echo "👉 Admin Management:    http://api.thenexopp.com/admin  (or http://api.thenexopp.com:3001)"
+echo "👉 Mobile Agent App:    http://api.thenexopp.com/"
+echo "👉 Backend REST API:    http://api.thenexopp.com/api/v1"
+echo "👉 WebSocket Gateway:   ws://api.thenexopp.com/ws"
 echo "👉 Uploads Storage:     $APP_DIR/backend/uploads"
 echo "=============================================================================="
