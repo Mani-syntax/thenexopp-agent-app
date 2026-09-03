@@ -57,7 +57,6 @@ rm -f /etc/nginx/conf.d/*
 cat << 'NGINX_EOF' > /etc/nginx/sites-available/thenexopp
 # ==============================================================================
 # 1. Primary Host: api.thenexopp.com & admin.thenexopp.com
-# Serves: Admin Portal at root (/), REST API (/api/v1), WebSockets (/ws), Uploads (/uploads)
 # ==============================================================================
 server {
     listen 80;
@@ -70,17 +69,7 @@ server {
     root /opt/thenexopp-agent/admin/dist;
     index index.html;
 
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    location /admin {
-        alias /opt/thenexopp-agent/admin/dist;
-        index index.html;
-        try_files $uri $uri/ /index.html;
-    }
-
-    # Backend REST API
+    # 1. Backend REST API
     location /api/v1/ {
         proxy_pass http://127.0.0.1:3000/api/v1/;
         proxy_http_version 1.1;
@@ -91,7 +80,20 @@ server {
         proxy_read_timeout 90s;
     }
 
-    # Real-time WebSocket Gateway
+    # 2. Socket.io WebSockets
+    location /socket.io/ {
+        proxy_pass http://127.0.0.1:3000/socket.io/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
+    }
+
     location /ws/ {
         proxy_pass http://127.0.0.1:3000/ws/;
         proxy_http_version 1.1;
@@ -105,7 +107,7 @@ server {
         proxy_send_timeout 86400s;
     }
 
-    # Uploads Storage
+    # 3. Uploads Storage
     location /uploads/ {
         alias /opt/thenexopp-agent/backend/uploads/;
         autoindex off;
@@ -113,10 +115,21 @@ server {
         add_header Cache-Control "public, no-transform";
         try_files $uri =404;
     }
+
+    # 4. Admin Frontend SPA Routing
+    location /admin {
+        alias /opt/thenexopp-agent/admin/dist;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
 }
 
 # ==============================================================================
-# 2. Default Host / Mobile Agent App (VPS IP / app.thenexopp.com / Port 80 default)
+# 2. Default Host / Mobile Agent App (VPS IP / Port 80 default)
 # ==============================================================================
 server {
     listen 80 default_server;
@@ -128,17 +141,6 @@ server {
     root /opt/thenexopp-agent/mobile/build/web;
     index index.html;
 
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    # Fallback access to admin
-    location /admin {
-        alias /opt/thenexopp-agent/admin/dist;
-        index index.html;
-        try_files $uri $uri/ /index.html;
-    }
-
     location /api/v1/ {
         proxy_pass http://127.0.0.1:3000/api/v1/;
         proxy_http_version 1.1;
@@ -146,6 +148,14 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /socket.io/ {
+        proxy_pass http://127.0.0.1:3000/socket.io/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
     }
 
     location /ws/ {
@@ -159,6 +169,16 @@ server {
     location /uploads/ {
         alias /opt/thenexopp-agent/backend/uploads/;
         expires 30d;
+    }
+
+    location /admin {
+        alias /opt/thenexopp-agent/admin/dist;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
     }
 }
 NGINX_EOF
@@ -187,9 +207,8 @@ ufw --force enable
 
 echo "=============================================================================="
 echo "🎉 DEPLOYMENT COMPLETE!"
-echo "👉 Admin Management:    http://api.thenexopp.com/"
-echo "👉 Backend REST API:    http://api.thenexopp.com/api/v1"
-echo "👉 WebSocket Gateway:   ws://api.thenexopp.com/ws"
-echo "👉 Mobile Agent App:    http://$(curl -s ifconfig.me)/"
+echo "👉 Admin Management:    https://api.thenexopp.com/"
+echo "👉 Backend REST API:    https://api.thenexopp.com/api/v1"
+echo "👉 WebSocket Gateway:   wss://api.thenexopp.com/socket.io/"
 echo "👉 Uploads Storage:     $APP_DIR/backend/uploads"
 echo "=============================================================================="
