@@ -37,19 +37,19 @@ export class PropertyEntity {
   @Column({ type: 'text' })
   description: string;
 
-  @Column({ type: 'numeric', precision: 12, scale: 2 })
+  @Column({ type: 'decimal', precision: 12, scale: 2 })
   price: number;
 
-  @Column({ type: 'enum', enum: PropertyCategory })
+  @Column({ type: 'simple-enum', enum: PropertyCategory })
   category: PropertyCategory;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   specifications: Record<string, any>;
 
   @Column({ type: 'varchar', length: 200 })
   location: string;
 
-  @Column({ type: 'enum', enum: PropertyStatus, default: PropertyStatus.DRAFT })
+  @Column({ type: 'simple-enum', enum: PropertyStatus, default: PropertyStatus.DRAFT })
   status: PropertyStatus;
 
   @Column({ type: 'text', nullable: true })
@@ -61,10 +61,10 @@ export class PropertyEntity {
   @OneToMany(() => PropertyVerificationEntity, (verification) => verification.property)
   verifications: PropertyVerificationEntity[];
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   submittedAt: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   reviewedAt: Date;
 
   @CreateDateColumn()

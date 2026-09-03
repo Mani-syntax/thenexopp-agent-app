@@ -23,8 +23,22 @@ export interface AgentSummary {
   profilePhotoUrl?: string | null;
   areaLocation: string | null;
   workPlatform: string | null;
+  age?: number | null;
+  gender?: string | null;
   kycStatus: KycStatus;
-  bankAccountLast4: string | null;
+  aadhaarLast4?: string | null;
+  panMasked?: string | null;
+  aadhaarFullNumber?: string | null;
+  panFullNumber?: string | null;
+  aadhaarDocKey?: string | null;
+  panDocKey?: string | null;
+  aadhaarDocUrl?: string | null;
+  panDocUrl?: string | null;
+  bankAccountLast4?: string | null;
+  bankAccountFullNumber?: string | null;
+  bankIfscCode?: string | null;
+  bankUpiId?: string | null;
+  bankPhonepeNumber?: string | null;
   submittedAt: string;
   totalListings?: number;
   acceptedListings?: number;
@@ -60,6 +74,8 @@ export interface PropertyListing {
   category: string;
   specifications: Record<string, any>;
   location: string;
+  locationAddress?: string;
+  locationCity?: string;
   status: PropertyStatus;
   rejectionReason?: string;
   submittedAt: string;
@@ -94,6 +110,24 @@ export interface PaymentRecord {
   paymentProofKey?: string;
   paidAt: string;
   createdAt: string;
+}
+
+export interface PendingPaymentRecord {
+  id: string;
+  agentId: string;
+  agent: {
+    id: string;
+    fullName: string;
+    mobileNumber: string;
+    areaLocation?: string;
+  };
+  title: string;
+  amount: number;
+  status: string;
+  earnedDate: string;
+  propertyId?: string | null;
+  propertyTitle?: string | null;
+  propertyLocation?: string | null;
 }
 
 export interface PaymentAnalytics {

@@ -85,15 +85,15 @@ export class AgentWebSocketGateway implements OnGatewayConnection, OnGatewayDisc
 
   // Helper method to emit live updates to a specific agent
   emitToAgent(agentId: string, eventName: string, data: any) {
-    this.logger.log(`Emitting event '${eventName}' to agent ${agentId}`);
-    this.server.to(`agent_${agentId}`).emit(eventName, data);
+    this.logger.log(`Emitting event '${eventName}' to agent_${agentId}: ${JSON.stringify(data)}`);
+    const payload = { ...data, agentId };
+    this.server.to(`agent_${agentId}`).emit(eventName, payload);
   }
 
   // Helper method to emit live updates to admin portal
   emitToAdmin(eventName: string, data: any) {
     this.logger.log(`Emitting event '${eventName}' to admin_room`);
     this.server.to('admin_room').emit(eventName, data);
-    this.server.emit(eventName, data);
   }
 
   // Broadcast to all connected clients

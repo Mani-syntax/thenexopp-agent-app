@@ -14,7 +14,7 @@ export class UserEntity {
   @Column({ type: 'varchar', length: 15, unique: true })
   mobileNumber: string;
 
-  @Column({ type: 'enum', enum: UserRole, default: UserRole.AGENT })
+  @Column({ type: 'simple-enum', enum: UserRole, default: UserRole.AGENT })
   role: UserRole;
 
   @Column({ type: 'boolean', default: true })

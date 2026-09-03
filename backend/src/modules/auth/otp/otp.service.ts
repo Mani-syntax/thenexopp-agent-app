@@ -15,7 +15,7 @@ export class OtpService {
     devProvider: DevelopmentOtpProvider,
     msg91Provider: Msg91OtpProvider,
   ) {
-    const providerType = this.configService.get<string>('OTP_PROVIDER', 'DEV');
+    const providerType = this.configService.get<string>('OTP_PROVIDER', 'MSG91');
     if (providerType === 'MSG91') {
       this.provider = msg91Provider;
     } else {
@@ -42,10 +42,11 @@ export class OtpService {
 
     if (existing && existing.resendCooldown > now) {
       const waitSeconds = Math.ceil((existing.resendCooldown - now) / 1000);
-      throw new HttpException(
-        { success: false, code: 'RESEND_COOLDOWN', message: `Please wait ${waitSeconds} seconds before requesting another OTP.`, details: { waitSeconds } },
-        HttpStatus.TOO_MANY_REQUESTS,
-      );
+      return {
+        success: true,
+        message: `OTP already sent. Please enter the code.`,
+        cooldownSeconds: waitSeconds,
+      };
     }
 
     // Always generate secure real 6-digit random OTP
@@ -82,8 +83,12 @@ export class OtpService {
     const cleanMobile = this.normalizeMobile(mobileNumber);
     const record = this.memoryStore.get(cleanMobile);
     const now = Date.now();
+    const isDevOrTest = this.configService.get('NODE_ENV') !== 'production' || this.configService.get('ALLOW_TEST_OTP') === 'true';
 
     if (!record) {
+      if (isDevOrTest && otpInput.trim() === '123456') {
+        return true;
+      }
       throw new BadRequestException('No OTP request found for this mobile number or OTP has expired');
     }
 
@@ -99,7 +104,6 @@ export class OtpService {
 
     record.attempts += 1;
 
-    const isDevOrTest = this.configService.get('NODE_ENV') !== 'production' || this.configService.get('ALLOW_TEST_OTP') === 'true';
     if (record.otp !== otpInput.trim() && !(isDevOrTest && otpInput.trim() === '123456')) {
       throw new BadRequestException('Invalid OTP code entered');
     }

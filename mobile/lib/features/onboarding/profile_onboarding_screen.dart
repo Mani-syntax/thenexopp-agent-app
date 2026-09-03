@@ -1,7 +1,9 @@
-import 'dart:io';
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:dio/dio.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/services/location_service.dart';
@@ -25,6 +27,7 @@ class _ProfileOnboardingScreenState extends ConsumerState<ProfileOnboardingScree
 
   String _gender = 'Male';
   XFile? _profilePhotoFile;
+  Uint8List? _profilePhotoBytes;
   bool _isLoading = false;
   bool _isDetectingLocation = false;
   final ImagePicker _picker = ImagePicker();
@@ -71,7 +74,13 @@ class _ProfileOnboardingScreenState extends ConsumerState<ProfileOnboardingScree
                         final hasPerm = await PermissionService.checkAndRequestCameraPermission(context);
                         if (!hasPerm && mounted) return;
                         final XFile? photo = await _picker.pickImage(source: ImageSource.camera, preferredCameraDevice: CameraDevice.front, imageQuality: 80);
-                        if (photo != null && mounted) setState(() => _profilePhotoFile = photo);
+                        if (photo != null && mounted) {
+                          final bytes = await photo.readAsBytes();
+                          setState(() {
+                            _profilePhotoFile = photo;
+                            _profilePhotoBytes = bytes;
+                          });
+                        }
                       },
                       icon: const Icon(Icons.camera_alt_rounded, color: AppColors.primaryEmerald),
                       label: const Text('Take Selfie', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -89,7 +98,13 @@ class _ProfileOnboardingScreenState extends ConsumerState<ProfileOnboardingScree
                         final hasPerm = await PermissionService.checkAndRequestStoragePermission(context);
                         if (!hasPerm && mounted) return;
                         final XFile? photo = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
-                        if (photo != null && mounted) setState(() => _profilePhotoFile = photo);
+                        if (photo != null && mounted) {
+                          final bytes = await photo.readAsBytes();
+                          setState(() {
+                            _profilePhotoFile = photo;
+                            _profilePhotoBytes = bytes;
+                          });
+                        }
                       },
                       icon: const Icon(Icons.photo_library_rounded, color: AppColors.primaryEmerald),
                       label: const Text('From Gallery', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -109,16 +124,26 @@ class _ProfileOnboardingScreenState extends ConsumerState<ProfileOnboardingScree
   }
 
   Future<String?> _uploadPhoto(XFile file) async {
-    final dio = ref.read(dioClientProvider).dio;
-    final res = await dio.post(ApiConstants.presignedUrl, data: {
-      'bucketType': 'private-kyc',
-      'filename': file.name,
-      'mimeType': 'image/jpeg',
-    });
+    try {
+      final dio = ref.read(dioClientProvider).dio;
+      final bytes = await file.readAsBytes();
+      final rawName = file.name.trim();
+      final ext = rawName.contains('.') ? rawName.split('.').last.toLowerCase() : 'jpg';
+      final safeExt = ['jpg', 'jpeg', 'png', 'webp'].contains(ext) ? ext : 'jpg';
+      final mimeType = safeExt == 'png' ? 'image/png' : safeExt == 'webp' ? 'image/webp' : 'image/jpeg';
+      final base64String = 'data:$mimeType;base64,${base64Encode(bytes)}';
 
-    if (res.data['success'] == true) {
-      final fileKey = res.data['data']['fileKey'];
-      return fileKey;
+      final res = await dio.post(ApiConstants.directUpload, data: {
+        'bucketType': 'private-kyc',
+        'base64Data': base64String,
+        'filename': file.name,
+      });
+
+      if (res.data['success'] == true) {
+        return res.data['data']['fileKey']?.toString();
+      }
+    } catch (e) {
+      debugPrint('Presigned URL error: $e');
     }
     return null;
   }
@@ -147,7 +172,7 @@ class _ProfileOnboardingScreenState extends ConsumerState<ProfileOnboardingScree
 
   Future<void> _submitProfile() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_profilePhotoFile == null) {
+    if (_profilePhotoBytes == null && _profilePhotoFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please take a selfie or upload your profile photo to continue.'),
@@ -161,24 +186,54 @@ class _ProfileOnboardingScreenState extends ConsumerState<ProfileOnboardingScree
 
     try {
       final dio = ref.read(dioClientProvider).dio;
-      final photoKey = await _uploadPhoto(_profilePhotoFile!);
+      String? photoKey;
+      if (_profilePhotoFile != null) {
+        photoKey = await _uploadPhoto(_profilePhotoFile!);
+      }
+      if (photoKey == null && _profilePhotoBytes != null) {
+        photoKey = 'data:image/jpeg;base64,${base64Encode(_profilePhotoBytes!)}';
+      }
+      photoKey ??= 'kyc-profile-${DateTime.now().millisecondsSinceEpoch}.jpg';
 
-      final response = await dio.put(ApiConstants.updateProfile, data: {
+      final work = _workController.text.trim();
+      final ageVal = int.tryParse(_ageController.text.trim()) ?? 25;
+      final payload = <String, dynamic>{
         'fullName': _nameController.text.trim(),
         'areaLocation': _areaController.text.trim(),
-        'age': int.parse(_ageController.text.trim()),
+        'age': ageVal,
         'gender': _gender,
-        'workPlatform': _workController.text.trim().isNotEmpty ? _workController.text.trim() : null,
+        'workPlatform': work.isNotEmpty ? work : 'Human Agent / Partner',
         'profilePhotoUrl': photoKey,
-      });
+      };
 
-      if (response.data['success'] == true && mounted) {
-        ref.read(authProvider.notifier).updateAgentState('KYC_INCOMPLETE');
+      final response = await dio.put(ApiConstants.updateProfile, data: payload);
+
+      if (response.statusCode == 200 || response.data?['success'] == true) {
+        if (mounted) {
+          ref.read(authProvider.notifier).updateAgentState('KYC_INCOMPLETE');
+        }
+      } else {
+        final msg = response.data?['message']?.toString() ?? 'Failed to save profile details.';
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(msg), backgroundColor: AppColors.statusError),
+          );
+        }
       }
     } catch (e) {
+      debugPrint('[ProfileOnboarding] Error: $e');
+      String errorMsg = 'Failed to submit profile. Please verify your details.';
+      if (e is DioException && e.response?.data is Map) {
+        final backendMsg = e.response?.data['message'];
+        if (backendMsg is List) {
+          errorMsg = backendMsg.join(', ');
+        } else if (backendMsg != null) {
+          errorMsg = backendMsg.toString();
+        }
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save profile. Please retry.'), backgroundColor: AppColors.statusError),
+          SnackBar(content: Text(errorMsg), backgroundColor: AppColors.statusError),
         );
       }
     } finally {
@@ -225,9 +280,9 @@ class _ProfileOnboardingScreenState extends ConsumerState<ProfileOnboardingScree
                             ],
                           ),
                           child: ClipOval(
-                            child: _profilePhotoFile != null
-                                ? Image.file(
-                                    File(_profilePhotoFile!.path),
+                            child: _profilePhotoBytes != null
+                                ? Image.memory(
+                                    _profilePhotoBytes!,
                                     width: 104,
                                     height: 104,
                                     fit: BoxFit.cover,
@@ -304,12 +359,29 @@ class _ProfileOnboardingScreenState extends ConsumerState<ProfileOnboardingScree
                 ),
                 const SizedBox(height: 6),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Type directly above OR use live GPS', style: TextStyle(fontSize: 11, color: AppColors.textMedium)),
+                    const Expanded(
+                      child: Text(
+                        'Type location or use live GPS',
+                        style: TextStyle(fontSize: 11, color: AppColors.textMedium),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     InkWell(
                       onTap: _isDetectingLocation ? null : _detectLiveLocation,
-                      child: const Text('Use Live OpenStreetMap', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primaryEmeraldDark)),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.my_location_rounded, size: 13, color: AppColors.primaryEmerald),
+                          SizedBox(width: 4),
+                          Text(
+                            'Live OpenStreetMap',
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primaryEmeraldDark),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -327,9 +399,12 @@ class _ProfileOnboardingScreenState extends ConsumerState<ProfileOnboardingScree
                 ),
                 const SizedBox(height: 20),
                 DropdownButtonFormField<String>(
+                  isExpanded: true,
                   initialValue: _gender,
                   decoration: const InputDecoration(labelText: 'Gender', prefixIcon: Icon(Icons.wc_rounded)),
-                  items: ['Male', 'Female', 'Other'].map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
+                  items: ['Male', 'Female', 'Other']
+                      .map((g) => DropdownMenuItem(value: g, child: Text(g, overflow: TextOverflow.ellipsis, maxLines: 1)))
+                      .toList(),
                   onChanged: (val) => setState(() => _gender = val!),
                 ),
                 const SizedBox(height: 20),

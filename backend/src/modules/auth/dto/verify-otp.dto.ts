@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, Length, Matches } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, Length, Matches } from 'class-validator';
 
 export class VerifyOtpDto {
   @ApiProperty({ example: '9876543210' })
@@ -15,5 +15,7 @@ export class VerifyOtpDto {
   otp: string;
 
   @ApiProperty({ example: 'Android-Pixel7-UUID123', required: false })
+  @IsOptional()
+  @IsString()
   deviceId?: string;
 }

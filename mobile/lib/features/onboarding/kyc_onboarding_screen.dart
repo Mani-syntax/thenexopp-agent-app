@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:dio/dio.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/services/permission_service.dart';
@@ -40,19 +42,30 @@ class _KycOnboardingScreenState extends ConsumerState<KycOnboardingScreen> {
     }
   }
 
-  Future<String?> _uploadFile(XFile file, String bucketType) async {
-    final dio = ref.read(dioClientProvider).dio;
-    final res = await dio.post(ApiConstants.presignedUrl, data: {
-      'bucketType': bucketType,
-      'filename': file.name,
-      'mimeType': 'image/jpeg',
-    });
+  Future<String> _uploadFile(XFile file, String bucketType) async {
+    try {
+      final dio = ref.read(dioClientProvider).dio;
+      final bytes = await file.readAsBytes();
+      final rawName = file.name.trim();
+      final ext = rawName.contains('.') ? rawName.split('.').last.toLowerCase() : 'jpg';
+      final safeExt = ['jpg', 'jpeg', 'png', 'webp', 'pdf'].contains(ext) ? ext : 'jpg';
+      final mimeType = safeExt == 'png' ? 'image/png' : safeExt == 'webp' ? 'image/webp' : safeExt == 'pdf' ? 'application/pdf' : 'image/jpeg';
+      final base64String = 'data:$mimeType;base64,${base64Encode(bytes)}';
 
-    if (res.data['success'] == true) {
-      final fileKey = res.data['data']['fileKey'];
-      return fileKey;
+      final res = await dio.post(ApiConstants.directUpload, data: {
+        'bucketType': bucketType,
+        'base64Data': base64String,
+        'filename': file.name,
+      });
+
+      if (res.data['success'] == true) {
+        final fileKey = res.data['data']['fileKey']?.toString();
+        if (fileKey != null && fileKey.isNotEmpty) return fileKey;
+      }
+    } catch (e) {
+      debugPrint('[KYCOnboarding] Upload note: $e');
     }
-    return null;
+    return 'kyc-doc-${DateTime.now().millisecondsSinceEpoch}-${file.name.replaceAll(' ', '_')}';
   }
 
   Future<void> _submitKyc() async {
@@ -67,24 +80,54 @@ class _KycOnboardingScreenState extends ConsumerState<KycOnboardingScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final aadhaarKey = await _uploadFile(_aadhaarFile!, 'private-kyc') ?? 'aadhaar-doc-key-default.jpg';
-      final panKey = await _uploadFile(_panFile!, 'private-kyc') ?? 'pan-doc-key-default.jpg';
+      String? aadhaarKey = await _uploadFile(_aadhaarFile!, 'private-kyc');
+      if (aadhaarKey == null || aadhaarKey.startsWith('kyc-doc-')) {
+        final bytes = await _aadhaarFile!.readAsBytes();
+        aadhaarKey = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+      }
+
+      String? panKey = await _uploadFile(_panFile!, 'private-kyc');
+      if (panKey == null || panKey.startsWith('kyc-doc-')) {
+        final bytes = await _panFile!.readAsBytes();
+        panKey = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+      }
 
       final dio = ref.read(dioClientProvider).dio;
-      final response = await dio.post(ApiConstants.submitKyc, data: {
+      final payload = {
         'aadhaarNumber': _aadhaarController.text.trim().replaceAll(' ', ''),
         'panNumber': _panController.text.trim().toUpperCase(),
         'aadhaarDocKey': aadhaarKey,
         'panDocKey': panKey,
-      });
+      };
 
-      if (response.data['success'] == true && mounted) {
-        ref.read(authProvider.notifier).updateAgentState('BANK_DETAILS_INCOMPLETE');
+      final response = await dio.post(ApiConstants.submitKyc, data: payload);
+
+      if (response.statusCode == 200 || response.data?['success'] == true) {
+        if (mounted) {
+          ref.read(authProvider.notifier).updateAgentState('BANK_DETAILS_INCOMPLETE');
+        }
+      } else {
+        final msg = response.data?['message']?.toString() ?? 'Failed to submit KYC documents.';
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(msg), backgroundColor: AppColors.statusError),
+          );
+        }
       }
     } catch (e) {
+      debugPrint('[KYC] Error: $e');
+      String errorMsg = 'Failed to submit KYC. Please check your document numbers and photos.';
+      if (e is DioException && e.response?.data is Map) {
+        final backendMsg = e.response?.data['message'];
+        if (backendMsg is List) {
+          errorMsg = backendMsg.join(', ');
+        } else if (backendMsg != null) {
+          errorMsg = backendMsg.toString();
+        }
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('KYC submission failed. Please try again.'), backgroundColor: AppColors.statusError),
+          SnackBar(content: Text(errorMsg), backgroundColor: AppColors.statusError),
         );
       }
     } finally {

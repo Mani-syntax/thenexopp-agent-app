@@ -31,13 +31,13 @@ export class AgentEntity {
   @JoinColumn({ name: 'userId' })
   user: UserEntity;
 
-  @Column({ type: 'enum', enum: AgentStatus, default: AgentStatus.NEW })
+  @Column({ type: 'simple-enum', enum: AgentStatus, default: AgentStatus.NEW })
   status: AgentStatus;
 
   @Column({ type: 'text', nullable: true })
   rejectionReason: string;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   approvedAt: Date;
 
   @OneToOne(() => AgentProfileEntity, (profile) => profile.agent, { cascade: true })

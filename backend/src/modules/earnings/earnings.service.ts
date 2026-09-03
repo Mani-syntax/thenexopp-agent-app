@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { EarningEntity, EarningStatus } from '../../database/entities/earning.entity';
+import { PaymentEntity, PaymentStatus } from '../../database/entities/payment.entity';
 import { AgentEntity } from '../../database/entities/agent.entity';
 
 @Injectable()
@@ -11,6 +12,8 @@ export class EarningsService {
   constructor(
     @InjectRepository(EarningEntity)
     private readonly earningRepository: Repository<EarningEntity>,
+    @InjectRepository(PaymentEntity)
+    private readonly paymentRepository: Repository<PaymentEntity>,
     @InjectRepository(AgentEntity)
     private readonly agentRepository: Repository<AgentEntity>,
   ) {}
@@ -23,6 +26,11 @@ export class EarningsService {
       where: { agentId: agent.id },
       relations: ['property'],
       order: { earnedDate: 'DESC' },
+    });
+
+    const payments = await this.paymentRepository.find({
+      where: { agentId: agent.id, status: PaymentStatus.COMPLETED },
+      order: { paidAt: 'DESC' },
     });
 
     let totalEarnings = 0;
@@ -57,6 +65,28 @@ export class EarningsService {
         propertyTitle: e.property ? e.property.title : null,
       };
     });
+
+    // Check if there are any completed payments that were direct and not captured in earnings list
+    const linkedEarningIds = new Set(earnings.map((e) => e.id));
+    for (const p of payments) {
+      if (!p.earningId || !linkedEarningIds.has(p.earningId)) {
+        const pAmt = Number(p.amount);
+        paidAmount += pAmt;
+        totalEarnings += pAmt;
+        const pDate = new Date(p.paidAt);
+        if (pDate.getMonth() === currentMonth && pDate.getFullYear() === currentYear) {
+          thisMonthEarnings += pAmt;
+        }
+        formattedList.push({
+          id: p.id,
+          title: `Direct Payout (Txn: ${p.transactionId})`,
+          amount: pAmt,
+          status: EarningStatus.PAID,
+          earnedDate: p.paidAt,
+          propertyTitle: null,
+        });
+      }
+    }
 
     return {
       success: true,

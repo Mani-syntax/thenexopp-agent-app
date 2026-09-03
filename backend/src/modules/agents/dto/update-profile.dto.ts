@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsInt, Min, Max, IsIn, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsString, IsInt, Min, Max, IsOptional } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class UpdateProfileDto {
   @ApiProperty({ example: 'Rajesh Kumar' })
@@ -14,9 +15,10 @@ export class UpdateProfileDto {
 
   @ApiProperty({ example: 28 })
   @IsNotEmpty()
+  @Type(() => Number)
   @IsInt()
   @Min(18)
-  @Max(80)
+  @Max(100)
   age: number;
 
   @ApiProperty({ example: 'Male' })

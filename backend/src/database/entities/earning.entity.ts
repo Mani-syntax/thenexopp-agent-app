@@ -5,6 +5,7 @@ import { PaymentEntity } from './payment.entity';
 
 export enum EarningStatus {
   PENDING = 'PENDING',
+  CONFIRMED = 'CONFIRMED',
   PAID = 'PAID',
 }
 
@@ -30,13 +31,13 @@ export class EarningEntity {
   @Column({ type: 'varchar', length: 200 })
   title: string;
 
-  @Column({ type: 'numeric', precision: 12, scale: 2 })
+  @Column({ type: 'decimal', precision: 12, scale: 2 })
   amount: number;
 
-  @Column({ type: 'enum', enum: EarningStatus, default: EarningStatus.PENDING })
+  @Column({ type: 'simple-enum', enum: EarningStatus, default: EarningStatus.PENDING })
   status: EarningStatus;
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'datetime' })
   earnedDate: Date;
 
   @OneToMany(() => PaymentEntity, (payment) => payment.earning)

@@ -58,7 +58,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ? const Center(child: CircularProgressIndicator(color: AppColors.primaryEmerald))
           : SingleChildScrollView(
               physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 100),
               child: Column(
                 children: [
                   const SizedBox(height: 8),

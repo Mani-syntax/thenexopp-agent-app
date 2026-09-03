@@ -76,7 +76,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           if (currentLoc != '/suspended') return '/suspended';
           break;
         case 'APPROVED':
-          if (currentLoc == '/' || currentLoc == '/login' || currentLoc == '/otp' || currentLoc.startsWith('/onboarding') || currentLoc == '/pending-approval') {
+          if (currentLoc != '/home' && !currentLoc.startsWith('/properties')) {
             return '/home';
           }
           break;

@@ -27,7 +27,7 @@ export class PaymentEntity {
   @JoinColumn({ name: 'earningId' })
   earning: EarningEntity;
 
-  @Column({ type: 'numeric', precision: 12, scale: 2 })
+  @Column({ type: 'decimal', precision: 12, scale: 2 })
   amount: number;
 
   @Column({ type: 'varchar', length: 100 })
@@ -36,13 +36,13 @@ export class PaymentEntity {
   @Column({ type: 'varchar', length: 50 })
   paymentMethod: string; // UPI, NEFT, RTGS, IMPS
 
-  @Column({ type: 'enum', enum: PaymentStatus, default: PaymentStatus.COMPLETED })
+  @Column({ type: 'simple-enum', enum: PaymentStatus, default: PaymentStatus.COMPLETED })
   status: PaymentStatus;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   paymentProofKey: string; // MinIO private key
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'datetime' })
   paidAt: Date;
 
   @CreateDateColumn()

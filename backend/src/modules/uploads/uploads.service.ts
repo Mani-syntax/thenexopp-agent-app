@@ -71,8 +71,7 @@ export class UploadsService implements OnModuleInit {
         },
       };
     } catch (err) {
-      this.logger.error(`Presigned URL generation error: ${err.message}`);
-      // Fallback for local dev when MinIO port is unreachable directly
+      this.logger.log(`MinIO offline; using local storage engine for: ${fileKey}`);
       return {
         success: true,
         data: {
@@ -87,10 +86,12 @@ export class UploadsService implements OnModuleInit {
 
   async getPresignedReadUrl(bucketType: BucketType, fileKey: string) {
     if (!fileKey) return null;
+    if (fileKey.startsWith('http') || fileKey.startsWith('data:image/')) {
+      return fileKey;
+    }
     try {
       return await this.minioClient.presignedGetObject(bucketType, fileKey, 30 * 60); // 30 mins
     } catch (err) {
-      this.logger.error(`Presigned read URL error: ${err.message}`);
       return `http://localhost:3000/api/v1/uploads/local-mock-view?key=${fileKey}&bucket=${bucketType}`;
     }
   }

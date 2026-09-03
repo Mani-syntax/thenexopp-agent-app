@@ -1,7 +1,28 @@
+import 'package:flutter/foundation.dart';
+
 class ApiConstants {
-  // Base URLs (Points to live production KVM2 VPS)
-  static const String baseUrl = 'https://api.thenexopp.com/api/v1';
-  static const String webSocketUrl = 'https://api.thenexopp.com/ws';
+  // Base URLs (Dynamically resolves to localhost:3000 in local dev/web and live VPS in prod)
+  static String get baseUrl {
+    if (kIsWeb) {
+      final host = Uri.base.host;
+      if (host.isNotEmpty && host != 'localhost' && host != '127.0.0.1') {
+        final portStr = (Uri.base.port == 3000 || Uri.base.port == 80 || Uri.base.port == 443 || Uri.base.port == 0) ? '' : ':3000';
+        return '${Uri.base.scheme}://${Uri.base.host}$portStr/api/v1';
+      }
+    }
+    return 'http://localhost:3000/api/v1';
+  }
+
+  static String get webSocketUrl {
+    if (kIsWeb) {
+      final host = Uri.base.host;
+      if (host.isNotEmpty && host != 'localhost' && host != '127.0.0.1') {
+        final portStr = (Uri.base.port == 3000 || Uri.base.port == 80 || Uri.base.port == 443 || Uri.base.port == 0) ? '' : ':3000';
+        return '${Uri.base.scheme}://${Uri.base.host}$portStr/ws';
+      }
+    }
+    return 'http://localhost:3000/ws';
+  }
 
   // Production fallback domain
   static const String prodBaseUrl = 'https://api.thenexopp.com/api/v1';
@@ -37,6 +58,7 @@ class ApiConstants {
   // Uploads
   static const String presignedUrl = '/uploads/presigned-url';
   static const String secureViewUrl = '/uploads/secure-view-url';
+  static const String directUpload = '/uploads/direct-upload';
 
   // Support & Helpdesk
   static const String supportTickets = '/support/tickets';

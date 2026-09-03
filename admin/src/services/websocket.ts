@@ -1,6 +1,10 @@
 import { io, Socket } from 'socket.io-client';
 
-const WS_URL = import.meta.env.VITE_WS_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3000/ws' : 'https://api.thenexopp.com/ws');
+const WS_URL =
+  import.meta.env.VITE_WS_URL ||
+  (typeof window !== 'undefined'
+    ? `${window.location.protocol}//${window.location.hostname}${window.location.port === '3000' || window.location.port === '80' || window.location.port === '' ? '' : ':3000'}/ws`
+    : 'http://localhost:3000/ws');
 
 export class AdminWebSocketService {
   private socket: Socket | null = null;
@@ -12,8 +16,8 @@ export class AdminWebSocketService {
     }
 
     this.socket = io(WS_URL, {
-      transports: ['polling'],
-      upgrade: false,
+      transports: ['websocket', 'polling'],
+      upgrade: true,
       auth: { token },
       query: { token },
       autoConnect: true,
@@ -43,13 +47,24 @@ export class AdminWebSocketService {
       'kyc.status.updated',
       'property.status.updated',
       'payment.created',
+      'payment.deleted',
       'agent.registered',
+      'ticket.created',
+      'ticket.updated',
+      'earnings.updated',
     ];
 
     events.forEach((event) => {
       this.socket?.on(event, (data) => {
+        console.log(`[Admin Socket.io] 📢 Received event: ${event}`, data);
         this.notify(event, data);
       });
+    });
+
+    // Also forward any generic event dynamically
+    this.socket.onAny((event, ...args) => {
+      const data = args && args.length > 0 ? args[0] : null;
+      this.notify(event, data);
     });
   }
 

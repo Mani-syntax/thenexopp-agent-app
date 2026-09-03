@@ -1,38 +1,117 @@
-import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { AdminIntegrationService } from './admin-integration.service';
 import { AgentStatus } from '../../database/entities/agent.entity';
 import { PropertyStatus } from '../../database/entities/property.entity';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
+import { ApiProperty } from '@nestjs/swagger';
+import { IsNotEmpty, IsString, IsBoolean, IsEnum, IsNumber, IsOptional } from 'class-validator';
+
 class ReviewKycDto {
+  @ApiProperty({ example: true })
+  @IsNotEmpty()
+  @IsBoolean()
   approve: boolean;
+
+  @ApiProperty({ example: 'Documents verified successfully', required: false })
+  @IsOptional()
+  @IsString()
   rejectionReason?: string;
 }
 
 class UpdateAgentStatusDto {
+  @ApiProperty({ enum: AgentStatus, example: AgentStatus.APPROVED })
+  @IsNotEmpty()
+  @IsEnum(AgentStatus)
   status: AgentStatus;
+
+  @ApiProperty({ example: 'Approved by admin', required: false })
+  @IsOptional()
+  @IsString()
   rejectionReason?: string;
 }
 
 class ReviewPropertyDto {
+  @ApiProperty({ example: true })
+  @IsNotEmpty()
+  @IsBoolean()
   approve: boolean;
+
+  @ApiProperty({ example: 'Verified property listing', required: false })
+  @IsOptional()
+  @IsString()
   rejectionReason?: string;
 }
 
 class CreateEarningDto {
+  @ApiProperty({ example: 'uuid-agent-id' })
+  @IsNotEmpty()
+  @IsString()
   agentId: string;
+
+  @ApiProperty({ example: 'Property Listing Commission' })
+  @IsNotEmpty()
+  @IsString()
   title: string;
+
+  @ApiProperty({ example: 1000 })
+  @IsNotEmpty()
+  @IsNumber()
   amount: number;
+
+  @ApiProperty({ example: 'uuid-property-id', required: false })
+  @IsOptional()
+  @IsString()
   propertyId?: string;
 }
 
 class RecordPaymentDto {
+  @ApiProperty({ example: 'uuid-agent-id' })
+  @IsNotEmpty()
+  @IsString()
   agentId: string;
+
+  @ApiProperty({ example: 1000 })
+  @IsNotEmpty()
+  @IsNumber()
   amount: number;
+
+  @ApiProperty({ example: 'UPI123456789' })
+  @IsNotEmpty()
+  @IsString()
   transactionId: string;
+
+  @ApiProperty({ example: 'UPI' })
+  @IsNotEmpty()
+  @IsString()
   paymentMethod: string;
+
+  @ApiProperty({ example: 'uuid-earning-id', required: false })
+  @IsOptional()
+  @IsString()
   earningId?: string;
+
+  @ApiProperty({ example: 'payment-proof-key.jpg', required: false })
+  @IsOptional()
+  @IsString()
+  paymentProofKey?: string;
+}
+
+class SettlePendingPaymentDto {
+  @ApiProperty({ example: 'UTR123456789' })
+  @IsNotEmpty()
+  @IsString()
+  transactionId: string;
+
+  @ApiProperty({ example: 'UPI', required: false })
+  @IsOptional()
+  @IsString()
+  paymentMethod?: string;
+
+  @ApiProperty({ example: 'payment-proof-key.jpg', required: false })
+  @IsOptional()
+  @IsString()
   paymentProofKey?: string;
 }
 
@@ -86,6 +165,25 @@ export class AdminIntegrationController {
     return this.adminService.getPaymentRecords(startDate, endDate, agentId, search);
   }
 
+  @Get('pending-payments')
+  @ApiOperation({ summary: 'List all pending payments requiring admin review and settlement' })
+  @ApiQuery({ name: 'search', required: false })
+  async getPendingPayments(@Query('search') search?: string) {
+    return this.adminService.getPendingPayments(search);
+  }
+
+  @Post('pending-payments/:id/settle')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Settle and disburse a pending payment' })
+  async settlePendingPayment(@Param('id') earningId: string, @Body() body: SettlePendingPaymentDto) {
+    return this.adminService.settlePendingPayment(
+      earningId,
+      body.transactionId,
+      body.paymentMethod || 'UPI',
+      body.paymentProofKey,
+    );
+  }
+
   @Put('agents/:id/kyc')
   @ApiOperation({ summary: 'Approve or Reject agent KYC' })
   async reviewKyc(@Param('id') agentId: string, @Body() body: ReviewKycDto) {
@@ -123,5 +221,65 @@ export class AdminIntegrationController {
       body.earningId,
       body.paymentProofKey,
     );
+  }
+
+  @Delete('payments/:id')
+  @ApiOperation({ summary: 'Delete a payment transaction record' })
+  async deletePayment(@Param('id') paymentId: string) {
+    return this.adminService.deletePayment(paymentId);
+  }
+
+  @Delete('agents/:id')
+  @ApiOperation({ summary: 'Delete an agent and all related records' })
+  async deleteAgent(@Param('id') agentId: string) {
+    return this.adminService.deleteAgent(agentId);
+  }
+
+  @Put('agents/:id')
+  @ApiOperation({ summary: 'Update agent profile details' })
+  async updateAgent(@Param('id') agentId: string, @Body() body: any) {
+    return this.adminService.updateAgent(agentId, body);
+  }
+
+  @Delete('kyc/:agentId')
+  @ApiOperation({ summary: 'Delete or reset KYC submission for agent' })
+  async deleteKyc(@Param('agentId') agentId: string) {
+    return this.adminService.deleteKyc(agentId);
+  }
+
+  @Put('kyc/:agentId')
+  @ApiOperation({ summary: 'Update KYC and banking details for agent' })
+  async updateKyc(@Param('agentId') agentId: string, @Body() body: any) {
+    return this.adminService.updateKyc(agentId, body);
+  }
+
+  @Delete('properties/:id')
+  @ApiOperation({ summary: 'Delete property listing' })
+  async deleteProperty(@Param('id') propertyId: string) {
+    return this.adminService.deleteProperty(propertyId);
+  }
+
+  @Put('properties/:id')
+  @ApiOperation({ summary: 'Update property listing details' })
+  async updateProperty(@Param('id') propertyId: string, @Body() body: any) {
+    return this.adminService.updateProperty(propertyId, body);
+  }
+
+  @Delete('earnings/:id')
+  @ApiOperation({ summary: 'Delete earning record' })
+  async deleteEarning(@Param('id') earningId: string) {
+    return this.adminService.deleteEarning(earningId);
+  }
+
+  @Delete('pending-payments/:id')
+  @ApiOperation({ summary: 'Delete / Cancel pending payment' })
+  async deletePendingPayment(@Param('id') earningId: string) {
+    return this.adminService.deleteEarning(earningId);
+  }
+
+  @Delete('tickets/:id')
+  @ApiOperation({ summary: 'Delete support ticket' })
+  async deleteTicket(@Param('id') ticketId: string) {
+    return this.adminService.deleteTicket(ticketId);
   }
 }

@@ -39,7 +39,7 @@ export class SupportTicketEntity {
   @JoinColumn({ name: 'agentId' })
   agent: AgentEntity;
 
-  @Column({ type: 'enum', enum: TicketCategory, default: TicketCategory.OTHER })
+  @Column({ type: 'simple-enum', enum: TicketCategory, default: TicketCategory.OTHER })
   category: TicketCategory;
 
   @Column({ type: 'varchar', length: 255 })
@@ -48,16 +48,16 @@ export class SupportTicketEntity {
   @Column({ type: 'text' })
   description: string;
 
-  @Column({ type: 'enum', enum: TicketPriority, default: TicketPriority.MEDIUM })
+  @Column({ type: 'simple-enum', enum: TicketPriority, default: TicketPriority.MEDIUM })
   priority: TicketPriority;
 
-  @Column({ type: 'enum', enum: TicketStatus, default: TicketStatus.OPEN })
+  @Column({ type: 'simple-enum', enum: TicketStatus, default: TicketStatus.OPEN })
   status: TicketStatus;
 
   @Column({ type: 'text', nullable: true })
   resolution: string;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   resolvedAt: Date;
 
   @CreateDateColumn()

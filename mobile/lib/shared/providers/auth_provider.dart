@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/storage/secure_storage_service.dart';
 import 'dio_provider.dart';
@@ -107,38 +109,58 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  void setMobileNumber(String mobileNumber) {
+    state = state.copyWith(mobileNumber: mobileNumber, errorMessage: null);
+  }
+
   Future<bool> sendOtp(String mobileNumber) async {
     state = state.copyWith(mobileNumber: mobileNumber, errorMessage: null);
     try {
       final dio = _ref.read(dioClientProvider).dio;
-      await dio.post(ApiConstants.sendOtp, data: {'mobileNumber': mobileNumber});
-      return true;
+      final response = await dio.post(ApiConstants.sendOtp, data: {'mobileNumber': mobileNumber});
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return true;
+      }
+      return false;
+    } on DioException catch (e) {
+      String msg = 'Failed to send OTP. Please check your network connection.';
+      if (e.response?.data is Map && e.response?.data['message'] != null) {
+        msg = e.response!.data['message'].toString();
+      }
+      state = state.copyWith(errorMessage: msg);
+      return false;
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Failed to send OTP. Please check your network connection.');
+      state = state.copyWith(errorMessage: 'Failed to send OTP: $e');
       return false;
     }
   }
 
   Future<bool> verifyOtp(String mobileNumber, String otp) async {
+    debugPrint('[AuthNotifier] verifyOtp called with mobile: "$mobileNumber", otp: "$otp"');
     try {
       final dio = _ref.read(dioClientProvider).dio;
       final response = await dio.post(ApiConstants.verifyOtp, data: {
         'mobileNumber': mobileNumber,
         'otp': otp,
-        'deviceId': 'Android-Device-Mobile',
       });
+
+      debugPrint('[AuthNotifier] verifyOtp response status: ${response.statusCode}, data: ${response.data}');
 
       if (response.data['success'] == true) {
         final data = response.data['data'];
         final agentState = data['agentState'] ?? 'NEW';
 
-        await _storage.saveTokens(
-          accessToken: data['accessToken'],
-          refreshToken: data['refreshToken'],
-          agentState: agentState,
-          userId: data['user']['id'],
-          agentId: data['user']['agentId'],
-        );
+        try {
+          await _storage.saveTokens(
+            accessToken: data['accessToken'],
+            refreshToken: data['refreshToken'],
+            agentState: agentState,
+            userId: data['user']['id'],
+            agentId: data['user']['agentId'],
+          );
+        } catch (storageErr) {
+          debugPrint('[AuthNotifier] Storage error ignored: $storageErr');
+        }
 
         state = AuthState(
           status: AuthStatus.authenticated,
@@ -147,8 +169,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
         );
         return true;
       }
-    } catch (e) {
-      state = state.copyWith(errorMessage: 'Invalid or expired OTP code entered');
+    } on DioException catch (e) {
+      debugPrint('[AuthNotifier] DioException: ${e.message}, response: ${e.response?.data}');
+      String msg = 'Invalid or expired OTP code entered';
+      if (e.response?.data is Map && e.response?.data['message'] != null) {
+        msg = e.response!.data['message'].toString();
+      }
+      state = state.copyWith(errorMessage: msg);
+    } catch (e, stack) {
+      debugPrint('[AuthNotifier] Unexpected error: $e\n$stack');
+      state = state.copyWith(errorMessage: 'Verification failed: $e');
     }
     return false;
   }

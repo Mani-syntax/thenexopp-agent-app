@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:dio/dio.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/api_constants.dart';
+import '../../core/widgets/animated_spring_button.dart';
 import '../../shared/providers/dio_provider.dart';
 import '../../shared/providers/auth_provider.dart';
 
@@ -21,12 +25,26 @@ class _BankOnboardingScreenState extends ConsumerState<BankOnboardingScreen> {
   final _phonepeController = TextEditingController();
 
   bool _isLoading = false;
+  bool _obscureAccount = true;
+
+  @override
+  void dispose() {
+    _accountController.dispose();
+    _confirmAccountController.dispose();
+    _ifscController.dispose();
+    _upiController.dispose();
+    _phonepeController.dispose();
+    super.dispose();
+  }
 
   Future<void> _submitBankDetails() async {
     if (!_formKey.currentState!.validate()) return;
     if (_accountController.text.trim() != _confirmAccountController.text.trim()) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Account numbers do not match'), backgroundColor: AppColors.statusError),
+        SnackBar(
+          content: Text('Account numbers do not match', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+          backgroundColor: AppColors.statusError,
+        ),
       );
       return;
     }
@@ -35,21 +53,44 @@ class _BankOnboardingScreenState extends ConsumerState<BankOnboardingScreen> {
 
     try {
       final dio = ref.read(dioClientProvider).dio;
-      final response = await dio.post(ApiConstants.submitBankDetails, data: {
+      final payload = <String, dynamic>{
         'accountNumber': _accountController.text.trim(),
         'confirmAccountNumber': _confirmAccountController.text.trim(),
         'ifscCode': _ifscController.text.trim().toUpperCase(),
         'upiId': _upiController.text.trim(),
-        'phonepeNumber': _phonepeController.text.trim(),
-      });
+      };
+      if (_phonepeController.text.trim().isNotEmpty) {
+        payload['phonepeNumber'] = _phonepeController.text.trim();
+      }
 
-      if (response.data['success'] == true && mounted) {
-        ref.read(authProvider.notifier).updateAgentState('PENDING_APPROVAL');
+      final response = await dio.post(ApiConstants.submitBankDetails, data: payload);
+
+      if (response.statusCode == 200 || response.data?['success'] == true) {
+        if (mounted) {
+          ref.read(authProvider.notifier).updateAgentState('PENDING_APPROVAL');
+        }
+      } else {
+        final msg = response.data?['message']?.toString() ?? 'Failed to submit bank details.';
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(msg), backgroundColor: AppColors.statusError),
+          );
+        }
       }
     } catch (e) {
+      debugPrint('[BankOnboarding] Error: $e');
+      String errorMsg = 'Failed to submit bank details. Please verify your Account & IFSC.';
+      if (e is DioException && e.response?.data is Map) {
+        final backendMsg = e.response?.data['message'];
+        if (backendMsg is List) {
+          errorMsg = backendMsg.join(', ');
+        } else if (backendMsg != null) {
+          errorMsg = backendMsg.toString();
+        }
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to submit bank details'), backgroundColor: AppColors.statusError),
+          SnackBar(content: Text(errorMsg), backgroundColor: AppColors.statusError),
         );
       }
     } finally {
@@ -60,60 +101,189 @@ class _BankOnboardingScreenState extends ConsumerState<BankOnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Bank & Payout (Step 3 of 3)')),
+      backgroundColor: const Color(0xFFF8FAFC),
+      appBar: AppBar(
+        title: Text(
+          'Bank & Payout (Step 3 of 3)',
+          style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 16),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        foregroundColor: const Color(0xFF0F172A),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const LinearProgressIndicator(value: 1.0, backgroundColor: AppColors.borderLight, color: AppColors.secondaryGreen),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: const LinearProgressIndicator(
+                    value: 1.0,
+                    minHeight: 6,
+                    backgroundColor: Color(0xFFE2E8F0),
+                    color: Color(0xFF047857),
+                  ),
+                ),
                 const SizedBox(height: 24),
-                const Text('Banking & Payout Details', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textDark)),
+                Text(
+                  'Banking & Payout Details',
+                  style: GoogleFonts.inter(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF0F172A),
+                    letterSpacing: -0.3,
+                  ),
+                ),
                 const SizedBox(height: 8),
-                const Text('Earnings will be transferred directly to this bank account or UPI ID.', style: TextStyle(fontSize: 14, color: AppColors.textMedium)),
+                Text(
+                  'Earnings will be transferred directly to this bank account or UPI ID.',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: const Color(0xFF475569),
+                    height: 1.45,
+                  ),
+                ),
                 const SizedBox(height: 28),
-                TextFormField(
-                  controller: _accountController,
-                  keyboardType: TextInputType.number,
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: 'Bank Account Number', prefixIcon: Icon(Icons.account_balance_rounded)),
-                  validator: (val) => val == null || val.trim().length < 9 ? 'Enter valid account number' : null,
+
+                // Card Container for Inputs
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.02),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      // Bank Account Number
+                      TextFormField(
+                        controller: _accountController,
+                        keyboardType: TextInputType.number,
+                        obscureText: _obscureAccount,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A)),
+                        decoration: InputDecoration(
+                          labelText: 'Bank Account Number',
+                          labelStyle: GoogleFonts.inter(color: const Color(0xFF64748B), fontSize: 13.5),
+                          prefixIcon: const Icon(Icons.account_balance_rounded, color: Color(0xFF047857)),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscureAccount ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                              color: const Color(0xFF94A3B8),
+                              size: 20,
+                            ),
+                            onPressed: () => setState(() => _obscureAccount = !_obscureAccount),
+                          ),
+                          filled: true,
+                          fillColor: const Color(0xFFF8FAFC),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF047857), width: 1.5)),
+                        ),
+                        validator: (val) => val == null || val.trim().length < 9 ? 'Enter valid account number (min 9 digits)' : null,
+                      ),
+                      const SizedBox(height: 18),
+
+                      // Confirm Bank Account Number
+                      TextFormField(
+                        controller: _confirmAccountController,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A)),
+                        decoration: InputDecoration(
+                          labelText: 'Confirm Bank Account Number',
+                          labelStyle: GoogleFonts.inter(color: const Color(0xFF64748B), fontSize: 13.5),
+                          prefixIcon: const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFF047857)),
+                          filled: true,
+                          fillColor: const Color(0xFFF8FAFC),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF047857), width: 1.5)),
+                        ),
+                        validator: (val) => val == null || val.trim().isEmpty ? 'Please confirm account number' : null,
+                      ),
+                      const SizedBox(height: 18),
+
+                      // IFSC Code
+                      TextFormField(
+                        controller: _ifscController,
+                        textCapitalization: TextCapitalization.characters,
+                        style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A), letterSpacing: 1.0),
+                        decoration: InputDecoration(
+                          labelText: 'IFSC Code (e.g. SBIN0001234)',
+                          labelStyle: GoogleFonts.inter(color: const Color(0xFF64748B), fontSize: 13.5),
+                          prefixIcon: const Icon(Icons.location_city_rounded, color: Color(0xFF047857)),
+                          filled: true,
+                          fillColor: const Color(0xFFF8FAFC),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF047857), width: 1.5)),
+                        ),
+                        validator: (val) => val == null || val.trim().length != 11 ? 'Enter valid 11-character IFSC Code' : null,
+                      ),
+                      const SizedBox(height: 18),
+
+                      // Primary UPI ID
+                      TextFormField(
+                        controller: _upiController,
+                        style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A)),
+                        decoration: InputDecoration(
+                          labelText: 'Primary UPI ID (e.g. agent@upi)',
+                          labelStyle: GoogleFonts.inter(color: const Color(0xFF64748B), fontSize: 13.5),
+                          prefixIcon: const Icon(Icons.qr_code_rounded, color: Color(0xFF047857)),
+                          filled: true,
+                          fillColor: const Color(0xFFF8FAFC),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF047857), width: 1.5)),
+                        ),
+                        validator: (val) => val == null || !val.contains('@') ? 'Enter valid UPI ID (e.g. name@okaxis)' : null,
+                      ),
+                      const SizedBox(height: 18),
+
+                      // PhonePe / Paytm Number (Optional)
+                      TextFormField(
+                        controller: _phonepeController,
+                        keyboardType: TextInputType.phone,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)],
+                        style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A)),
+                        decoration: InputDecoration(
+                          labelText: 'PhonePe / Paytm Number (Optional)',
+                          labelStyle: GoogleFonts.inter(color: const Color(0xFF64748B), fontSize: 13.5),
+                          prefixIcon: const Icon(Icons.phone_iphone_rounded, color: Color(0xFF047857)),
+                          filled: true,
+                          fillColor: const Color(0xFFF8FAFC),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF047857), width: 1.5)),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _confirmAccountController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Confirm Bank Account Number', prefixIcon: Icon(Icons.account_balance_wallet_rounded)),
-                  validator: (val) => val == null || val.trim().isEmpty ? 'Confirm account number' : null,
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _ifscController,
-                  textCapitalization: TextCapitalization.characters,
-                  decoration: const InputDecoration(labelText: 'IFSC Code (e.g. SBIN0001234)', prefixIcon: Icon(Icons.location_city_rounded)),
-                  validator: (val) => val == null || val.trim().length != 11 ? 'Enter 11-char IFSC Code' : null,
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _upiController,
-                  decoration: const InputDecoration(labelText: 'Primary UPI ID (e.g. agent@upi)', prefixIcon: Icon(Icons.qr_code_rounded)),
-                  validator: (val) => val == null || !val.contains('@') ? 'Enter valid UPI ID' : null,
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _phonepeController,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(labelText: 'PhonePe / Paytm Number (Optional)', prefixIcon: Icon(Icons.phone_iphone_rounded)),
-                ),
-                const SizedBox(height: 32),
-                ElevatedButton(
+                const SizedBox(height: 28),
+
+                // Animated Submit Button
+                AnimatedSpringButton(
+                  text: 'Complete Registration & Submit for Review',
                   onPressed: _isLoading ? null : _submitBankDetails,
-                  child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('Complete Registration & Submit for Review'),
+                  isLoading: _isLoading,
+                  height: 52,
+                  borderRadius: 12,
                 ),
+                const SizedBox(height: 16),
               ],
             ),
           ),

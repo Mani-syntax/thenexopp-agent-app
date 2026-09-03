@@ -1,66 +1,83 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../theme/app_colors.dart';
 
 class PermissionService {
   static Future<bool> checkAndRequestCameraPermission(BuildContext context) async {
-    PermissionStatus status = await Permission.camera.status;
-    if (status.isGranted) return true;
+    if (kIsWeb) return true;
+    try {
+      PermissionStatus status = await Permission.camera.status;
+      if (status.isGranted) return true;
 
-    if (status.isPermanentlyDenied) {
-      if (!context.mounted) return false;
-      _showOpenSettingsDialog(context, 'Camera Permission Required', 'Camera access is required to take profile and document photos. Please enable Camera permission in app settings.');
-      return false;
+      if (status.isPermanentlyDenied) {
+        if (!context.mounted) return false;
+        _showOpenSettingsDialog(context, 'Camera Permission Required', 'Camera access is required to take profile and document photos. Please enable Camera permission in app settings.');
+        return false;
+      }
+
+      status = await Permission.camera.request();
+      return status.isGranted;
+    } catch (_) {
+      return true;
     }
-
-    status = await Permission.camera.request();
-    return status.isGranted;
   }
 
   static Future<bool> checkAndRequestStoragePermission(BuildContext context) async {
-    PermissionStatus status;
-    if (await Permission.photos.isGranted || await Permission.storage.isGranted) {
+    if (kIsWeb) return true;
+    try {
+      if (await Permission.photos.isGranted || await Permission.storage.isGranted) {
+        return true;
+      }
+
+      final photosStatus = await Permission.photos.request();
+      if (photosStatus.isGranted) return true;
+
+      final storageStatus = await Permission.storage.request();
+      if (storageStatus.isGranted) return true;
+
+      // On Android 13+, system photo picker opens without storage permission
+      return true;
+    } catch (_) {
       return true;
     }
-
-    status = await Permission.photos.request();
-    if (!status.isGranted) {
-      status = await Permission.storage.request();
-    }
-
-    if (status.isPermanentlyDenied) {
-      if (!context.mounted) return false;
-      _showOpenSettingsDialog(context, 'Photos & Storage Permission Required', 'Storage access is required to select document photos and property images. Please enable Storage permission in app settings.');
-      return false;
-    }
-
-    return status.isGranted;
   }
 
   static Future<bool> checkAndRequestLocationPermission(BuildContext context) async {
-    PermissionStatus status = await Permission.location.status;
-    if (status.isGranted) return true;
+    if (kIsWeb) return true;
+    try {
+      PermissionStatus status = await Permission.location.status;
+      if (status.isGranted) return true;
 
-    if (status.isPermanentlyDenied) {
-      if (!context.mounted) return false;
-      _showOpenSettingsDialog(context, 'Location Permission Required', 'GPS Location access is required to detect your operating area and property locations. Please enable Location permission in app settings.');
-      return false;
+      if (status.isPermanentlyDenied) {
+        if (!context.mounted) return false;
+        _showOpenSettingsDialog(context, 'Location Permission Required', 'GPS Location access is required to detect your operating area and property locations. Please enable Location permission in app settings.');
+        return false;
+      }
+
+      status = await Permission.location.request();
+      return status.isGranted;
+    } catch (_) {
+      return true;
     }
-
-    status = await Permission.location.request();
-    return status.isGranted;
   }
 
   static Future<bool> checkAndRequestNotificationPermission(BuildContext context) async {
-    PermissionStatus status = await Permission.notification.status;
-    if (status.isGranted) return true;
+    if (kIsWeb) return true;
+    try {
+      PermissionStatus status = await Permission.notification.status;
+      if (status.isGranted) return true;
 
-    status = await Permission.notification.request();
-    return status.isGranted;
+      status = await Permission.notification.request();
+      return status.isGranted;
+    } catch (_) {
+      return true;
+    }
   }
 
   /// Proactively request all required operational permissions for the agent app
   static Future<void> requestAllAppPermissions(BuildContext context) async {
+    if (kIsWeb) return;
     try {
       // 1. Notifications for real-time approvals & payouts
       await Permission.notification.request();

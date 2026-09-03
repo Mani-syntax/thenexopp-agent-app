@@ -5,6 +5,21 @@ import 'routing/app_router.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    return Material(
+      color: Colors.white,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            'Error: ${details.exception}',
+            style: const TextStyle(color: Colors.red, fontSize: 13),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
+    );
+  };
   runApp(
     const ProviderScope(
       child: TheNexoppAgentApp(),

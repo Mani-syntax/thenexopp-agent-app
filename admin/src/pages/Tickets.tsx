@@ -17,6 +17,7 @@ import {
   Tag,
   AlertTriangle,
   ArrowRight,
+  Trash2,
 } from 'lucide-react';
 import { Modal } from '../components/Modal';
 import { adminSocket } from '../services/websocket';
@@ -44,7 +45,10 @@ export const Tickets: React.FC = () => {
   useEffect(() => {
     fetchTickets();
 
-    const handleTicketCreated = () => {
+    const handleTicketCreated = (data: any) => {
+      console.log('[Tickets Page] 🚨 New ticket received live:', data);
+      setSuccessToast(`🚨 New Support Ticket: ${data?.ticketNumber || ''} - "${data?.subject || 'Help Request'}" by ${data?.agentName || 'Agent Partner'}`);
+      setTimeout(() => setSuccessToast(''), 6000);
       fetchTickets();
     };
 
@@ -106,6 +110,21 @@ export const Tickets: React.FC = () => {
       alert(e.message || 'Failed to update ticket status');
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleDeleteTicket = async (ticketId: string, ticketNumber?: string) => {
+    if (!window.confirm(`Are you sure you want to delete support ticket ${ticketNumber || 'this ticket'}?`)) {
+      return;
+    }
+    try {
+      await AdminApiService.deleteTicket(ticketId);
+      if (inspectTicket?.id === ticketId) {
+        setInspectTicket(null);
+      }
+      fetchTickets();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete ticket');
     }
   };
 
@@ -352,7 +371,7 @@ export const Tickets: React.FC = () => {
                       {t.status.replace('_', ' ')}
                     </span>
                   </td>
-                  <td className="p-4 text-right space-x-2" onClick={(e) => e.stopPropagation()}>
+                  <td className="p-4 text-right space-x-1.5" onClick={(e) => e.stopPropagation()}>
                     <a
                       href={`tel:+91${t.agent?.mobileNumber}`}
                       className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold inline-flex items-center space-x-1"
@@ -369,6 +388,13 @@ export const Tickets: React.FC = () => {
                       className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors"
                     >
                       Inspect & Reply
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTicket(t.id, t.ticketNumber)}
+                      className="p-1.5 bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 border border-rose-200 rounded-lg text-xs font-semibold inline-flex items-center transition-colors"
+                      title="Delete Support Ticket"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </td>
                 </tr>
@@ -449,13 +475,22 @@ export const Tickets: React.FC = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex flex-wrap justify-between items-center gap-3 pt-2">
-              <button
-                onClick={() => setInspectTicket(null)}
-                className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-semibold hover:bg-slate-200 hover:text-slate-900"
-              >
-                Close
-              </button>
+            <div className="flex flex-wrap justify-between items-center gap-3 pt-2 border-t border-slate-200">
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setInspectTicket(null)}
+                  className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-semibold hover:bg-slate-200 hover:text-slate-900"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => handleDeleteTicket(inspectTicket.id, inspectTicket.ticketNumber)}
+                  className="px-3.5 py-2 bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 border border-rose-200 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-colors"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  <span>Delete Ticket</span>
+                </button>
+              </div>
 
               <div className="flex items-center space-x-2">
                 {inspectTicket.status !== 'IN_PROGRESS' && (

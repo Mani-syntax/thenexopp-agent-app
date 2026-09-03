@@ -1,8 +1,12 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/widgets/human_agent_logo.dart';
+import '../../core/widgets/animated_spring_button.dart';
 import '../../shared/providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -16,6 +20,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _mobileController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _mobileController.dispose();
+    super.dispose();
+  }
 
   Future<void> _handleSendOtp() async {
     if (!_formKey.currentState!.validate()) return;
@@ -32,222 +42,434 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         context.push('/otp');
       } else {
         final error = ref.read(authProvider).errorMessage ?? 'Failed to send OTP';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error), backgroundColor: AppColors.statusError),
-        );
+        if (error.toLowerCase().contains('wait') || error.toLowerCase().contains('cooldown') || error.toLowerCase().contains('already')) {
+          context.push('/otp');
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(error), backgroundColor: AppColors.statusError),
+          );
+        }
       }
     }
+  }
+
+  void _showTroubleSigningInDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.headset_mic_rounded, color: Color(0xFF047857), size: 22),
+            const SizedBox(width: 8),
+            Text(
+              'Partner Support',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 17, color: const Color(0xFF111827)),
+            ),
+          ],
+        ),
+        content: Text(
+          'For assistance with logging in or OTP verification, please connect with our partner desk:\n\n📞 Helpline: +91 89775 05204\n💬 WhatsApp: Available 24/7',
+          style: GoogleFonts.inter(fontSize: 14, color: const Color(0xFF4B5563), height: 1.45),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: GoogleFonts.inter(color: const Color(0xFF6B7280))),
+          ),
+          ElevatedButton.icon(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final uri = Uri.parse('tel:+918977505204');
+              try {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              } catch (_) {}
+            },
+            icon: const Icon(Icons.call_rounded, size: 16),
+            label: Text('Call Support', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF047857),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Top Trust Badge
-                Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: AppColors.emeraldSurface,
-                      borderRadius: BorderRadius.circular(30),
-                      border: Border.all(color: AppColors.emeraldBorder),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.verified_rounded, size: 15, color: AppColors.primaryEmerald),
-                        SizedBox(width: 6),
-                        Text(
-                          'Official Partner App',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primaryEmeraldDark,
-                            letterSpacing: -0.2,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 28),
+      body: Stack(
+        children: [
+          // 1. Pristine Clean Architectural Villa Background
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/login_bg.png',
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Image.network(
+                'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1600&auto=format&fit=crop&q=85',
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
 
-                // Logo Container with soft glow
-                Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primaryEmerald.withAlpha(20),
-                          blurRadius: 24,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: const HumanAgentLogo(size: 100),
-                  ),
+          // 2. Soft Luminous Daylight Mist Gradient
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.white.withOpacity(0.90),
+                    Colors.white.withOpacity(0.52),
+                    Colors.white.withOpacity(0.92),
+                  ],
+                  stops: const [0.0, 0.45, 1.0],
                 ),
-                const SizedBox(height: 28),
+              ),
+            ),
+          ),
 
-                // Title & Subtitle
-                const Text(
-                  'Partner Sign In',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textDark,
-                    letterSpacing: -0.6,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Sign in to access your properties, track live commissions, and manage transactions.',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textMedium,
-                    height: 1.4,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 32),
+          // 3. Main Login Content
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 12),
 
-                // White Card Form Container
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: AppColors.borderLight),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withAlpha(8),
-                        blurRadius: 20,
-                        offset: const Offset(0, 6),
+                    // Official TheNexopp Brand Logo (Directly on canvas, transparent PNG)
+                    Center(
+                      child: Image.asset(
+                        'assets/images/app_logo.png',
+                        height: 98,
+                        fit: BoxFit.contain,
                       ),
-                    ],
-                  ),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const Text(
-                          'Mobile Number',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textDark,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _mobileController,
-                          keyboardType: TextInputType.phone,
-                          maxLength: 10,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textDark,
-                            letterSpacing: 1.2,
-                          ),
-                          decoration: InputDecoration(
-                            prefixIcon: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
-                              margin: const EdgeInsets.only(right: 12),
-                              decoration: const BoxDecoration(
-                                border: Border(right: BorderSide(color: AppColors.borderLight)),
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.phone_iphone_rounded, color: AppColors.primaryEmerald, size: 20),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    '+91',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 15,
-                                      color: AppColors.textDark,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            hintText: 'Enter 10-digit number',
-                            hintStyle: const TextStyle(
-                              color: AppColors.textLight,
-                              fontSize: 14,
-                              fontWeight: FontWeight.normal,
-                              letterSpacing: 0,
-                            ),
-                            counterText: '',
-                          ),
-                          validator: (value) {
-                            if (value == null || value.trim().length != 10) {
-                              return 'Please enter valid 10-digit mobile number';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 24),
+                    ),
+                    const SizedBox(height: 8),
 
-                        // Action Button
-                        ElevatedButton(
-                          onPressed: _isLoading ? null : _handleSendOtp,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryEmerald,
-                            minimumSize: const Size(double.infinity, 54),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                            elevation: 3,
-                            shadowColor: AppColors.primaryEmerald.withAlpha(100),
+                    // Tagline: — Where Next Happens —
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 24,
+                          height: 1.5,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF059669).withOpacity(0.60),
+                            borderRadius: BorderRadius.circular(1),
                           ),
-                          child: _isLoading
-                              ? const SizedBox(
-                                  height: 22,
-                                  width: 22,
-                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
-                                )
-                              : const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      'Get Verification OTP',
-                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Where Next Happens',
+                          style: GoogleFonts.playfairDisplay(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            fontStyle: FontStyle.italic,
+                            color: const Color(0xFF1E293B),
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          width: 24,
+                          height: 1.5,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF059669).withOpacity(0.60),
+                            borderRadius: BorderRadius.circular(1),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 28),
+
+                    // Headline: Partner Sign In
+                    Text(
+                      'Partner Sign In',
+                      style: GoogleFonts.inter(
+                        fontSize: 27,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF111827),
+                        letterSpacing: -0.4,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Subtitle
+                    Text(
+                      'Sign in for property access, live\ncommission tracking, and\nseamless transactions.',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: const Color(0xFF4B5563),
+                        fontWeight: FontWeight.w400,
+                        height: 1.45,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+
+                    // 4. Frosted Card Container
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.90),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: Colors.white,
+                              width: 1.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.06),
+                                blurRadius: 24,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                // Input Label
+                                Text(
+                                  'Mobile Number',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF1F2937),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+
+                                // Input Box
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.02),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: TextFormField(
+                                    controller: _mobileController,
+                                    keyboardType: TextInputType.phone,
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.digitsOnly,
+                                      LengthLimitingTextInputFormatter(10),
+                                    ],
+                                    style: GoogleFonts.inter(
+                                      fontSize: 15.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF111827),
+                                      letterSpacing: 0.8,
                                     ),
-                                    SizedBox(width: 8),
-                                    Icon(Icons.arrow_forward_rounded, size: 18),
+                                    decoration: InputDecoration(
+                                      border: InputBorder.none,
+                                      enabledBorder: InputBorder.none,
+                                      focusedBorder: InputBorder.none,
+                                      errorBorder: InputBorder.none,
+                                      focusedErrorBorder: InputBorder.none,
+                                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                                      prefixIcon: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const SizedBox(width: 12),
+                                          const Icon(
+                                            Icons.phone_android_rounded,
+                                            color: Color(0xFF059669),
+                                            size: 20,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            '+91',
+                                            style: GoogleFonts.inter(
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 15,
+                                              color: const Color(0xFF111827),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 2),
+                                          const Icon(
+                                            Icons.keyboard_arrow_down_rounded,
+                                            color: Color(0xFF6B7280),
+                                            size: 18,
+                                          ),
+                                          Container(
+                                            height: 20,
+                                            width: 1,
+                                            color: const Color(0xFFE5E7EB),
+                                            margin: const EdgeInsets.symmetric(horizontal: 10),
+                                          ),
+                                        ],
+                                      ),
+                                      hintText: 'Enter 10-digit number',
+                                      hintStyle: GoogleFonts.inter(
+                                        color: const Color(0xFF9CA3AF),
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w400,
+                                        letterSpacing: 0,
+                                      ),
+                                      counterText: '',
+                                    ),
+                                    validator: (value) {
+                                      if (value == null || value.trim().length != 10) {
+                                        return 'Please enter a valid 10-digit mobile number';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+
+                                // Deep Forest Emerald Animated Spring Button
+                                AnimatedSpringButton(
+                                  text: 'Get Verification OTP',
+                                  onPressed: _isLoading ? null : _handleSendOtp,
+                                  isLoading: _isLoading,
+                                  height: 52,
+                                  borderRadius: 14,
+                                ),
+                                const SizedBox(height: 18),
+
+                                // Subtle "or" Divider Line
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Container(height: 1, color: const Color(0xFFE5E7EB)),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                                      child: Text(
+                                        'or',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 12,
+                                          color: const Color(0xFF9CA3AF),
+                                          fontWeight: FontWeight.w400,
+                                        ),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: Container(height: 1, color: const Color(0xFFE5E7EB)),
+                                    ),
                                   ],
                                 ),
+                                const SizedBox(height: 14),
+
+                                // Trouble Signing In Action Row with hover & spring animation
+                                _AnimatedSupportLink(
+                                  onTap: _showTroubleSigningInDialog,
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                      ],
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+
+                    // 5. Footer Copyright
+                    Text(
+                      '© 2026 TheNexOpp Private Limited\nAll rights reserved.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: const Color(0xFF6B7280),
+                        fontWeight: FontWeight.w400,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AnimatedSupportLink extends StatefulWidget {
+  final VoidCallback onTap;
+
+  const _AnimatedSupportLink({required this.onTap});
+
+  @override
+  State<_AnimatedSupportLink> createState() => _AnimatedSupportLinkState();
+}
+
+class _AnimatedSupportLinkState extends State<_AnimatedSupportLink> {
+  bool _isHovered = false;
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) => setState(() => _isPressed = false),
+        onTapCancel: () => setState(() => _isPressed = false),
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          scale: _isPressed ? 0.97 : 1.0,
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOut,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: _isHovered ? const Color(0xFFF0FDF4) : Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.headset_mic_outlined,
+                  color: Color(0xFF059669),
+                  size: 19,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Trouble signing in?',
+                    style: GoogleFonts.inter(
+                      color: _isHovered ? const Color(0xFF047857) : const Color(0xFF111827),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13.5,
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
-
-                // Footer Info
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.lock_outline_rounded, size: 14, color: AppColors.textLight),
-                    SizedBox(width: 6),
-                    Text(
-                      'Protected by 256-Bit SSL Encryption',
-                      style: TextStyle(fontSize: 12, color: AppColors.textMedium, fontWeight: FontWeight.w500),
-                    ),
-                  ],
+                AnimatedSlide(
+                  duration: const Duration(milliseconds: 200),
+                  offset: _isHovered ? const Offset(0.25, 0) : Offset.zero,
+                  child: Icon(
+                    Icons.arrow_forward_rounded,
+                    color: _isHovered ? const Color(0xFF047857) : const Color(0xFF9CA3AF),
+                    size: 17,
+                  ),
                 ),
               ],
             ),

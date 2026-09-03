@@ -26,6 +26,12 @@ import {
   FolderDown,
   FileArchive,
   Loader2,
+  Trash2,
+  Edit3,
+  Save,
+  Upload,
+  Image as ImageIcon,
+  Plus,
 } from 'lucide-react';
 import JSZip from 'jszip';
 import { Modal } from '../components/Modal';
@@ -48,6 +54,23 @@ export const Properties: React.FC = () => {
   // Review & Inspect Modals
   const [inspectProperty, setInspectProperty] = useState<PropertyListing | null>(null);
   const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
+
+  // Failed / Broken Image Tracking
+  const [failedImageMap, setFailedImageMap] = useState<Record<string, boolean>>({});
+  const [uploadingPropertyId, setUploadingPropertyId] = useState<string | null>(null);
+
+  // Edit Property State
+  const [editingProperty, setEditingProperty] = useState<PropertyListing | null>(null);
+  const [editForm, setEditForm] = useState({
+    title: '',
+    description: '',
+    price: 0,
+    category: 'RESIDENTIAL_RENT',
+    locationAddress: '',
+    locationCity: '',
+    status: 'APPROVED',
+  });
+  const [isSaving, setIsSaving] = useState(false);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
@@ -227,6 +250,86 @@ export const Properties: React.FC = () => {
       alert(e.message || 'Review failed');
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleOpenEditProperty = (prop: PropertyListing) => {
+    setEditingProperty(prop);
+    setEditForm({
+      title: prop.title || '',
+      description: prop.description || '',
+      price: Number(prop.price || 0),
+      category: prop.category || 'RESIDENTIAL_RENT',
+      locationAddress: prop.locationAddress || prop.location || '',
+      locationCity: prop.locationCity || '',
+      status: prop.status || 'APPROVED',
+    });
+  };
+
+  const handleSavePropertyEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProperty) return;
+    setIsSaving(true);
+    try {
+      await AdminApiService.updateProperty(editingProperty.id, {
+        title: editForm.title,
+        description: editForm.description,
+        price: Number(editForm.price),
+        category: editForm.category,
+        locationAddress: editForm.locationAddress,
+        locationCity: editForm.locationCity,
+        status: editForm.status,
+      });
+      setEditingProperty(null);
+      if (inspectProperty?.id === editingProperty.id) {
+        setInspectProperty(null);
+      }
+      await fetchProperties();
+    } catch (err: any) {
+      alert(err.message || 'Failed to update property details');
+    }
+    setIsSaving(false);
+  };
+
+  const handleDeleteProperty = async (propertyId: string, title?: string) => {
+    if (!window.confirm(`⚠️ Permanently delete property listing "${title || 'this property'}" and all its photos?\nThis cannot be undone.`)) {
+      return;
+    }
+    try {
+      await AdminApiService.deleteProperty(propertyId);
+      if (inspectProperty?.id === propertyId) {
+        setInspectProperty(null);
+      }
+      await fetchProperties();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete property');
+    }
+  };
+
+  const handleImageUpload = async (propertyId: string, files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setUploadingPropertyId(propertyId);
+    try {
+      const newKeys: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const res = await AdminApiService.directUpload(file, 'property-images');
+        if (res.success && res.data?.fileKey) {
+          newKeys.push(res.data.fileKey);
+        }
+      }
+
+      if (newKeys.length > 0) {
+        await AdminApiService.updateProperty(propertyId, {
+          newImageKeys: newKeys,
+          replaceImages: false,
+        });
+        await fetchProperties();
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to upload property photos');
+    } finally {
+      setUploadingPropertyId(null);
     }
   };
 
@@ -500,17 +603,38 @@ export const Properties: React.FC = () => {
                     >
                       {/* Image Preview Banner */}
                       <div className="relative h-48 bg-slate-100 overflow-hidden group">
-                        {primaryImg?.url ? (
+                        {primaryImg?.url && !failedImageMap[primaryImg.url] ? (
                           <img
                             src={primaryImg.url}
                             alt={prop.title}
+                            onError={() => setFailedImageMap((prev) => ({ ...prev, [primaryImg.url!]: true }))}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 cursor-pointer"
                             onClick={() => openLightbox(prop.images || [])}
                           />
                         ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 space-y-1">
-                            <Building2 className="h-10 w-10 text-slate-300" />
-                            <span className="text-xs">No Photos Uploaded</span>
+                          <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100/90 text-slate-400 p-4 space-y-2 text-center">
+                            <div className="p-2.5 bg-white rounded-xl shadow-xs border border-slate-200">
+                              <Building2 className="h-6 w-6 text-slate-400" />
+                            </div>
+                            <div>
+                              <span className="text-xs font-bold text-slate-700 block">No Real Photos Uploaded</span>
+                              <span className="text-[10px] text-slate-400">Agent has not attached genuine property photos</span>
+                            </div>
+                            <label className="cursor-pointer px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-700 shadow-xs flex items-center space-x-1 transition-all">
+                              {uploadingPropertyId === prop.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin text-emerald-600" />
+                              ) : (
+                                <Upload className="h-3 w-3 text-emerald-600" />
+                              )}
+                              <span>Upload Real Photo</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                className="hidden"
+                                onChange={(e) => handleImageUpload(prop.id, e.target.files)}
+                              />
+                            </label>
                           </div>
                         )}
 
@@ -521,13 +645,13 @@ export const Properties: React.FC = () => {
                           </span>
                         </div>
 
-                        {prop.images && prop.images.length > 1 && (
+                        {prop.images && prop.images.filter(i => i.url && !failedImageMap[i.url]).length > 1 && (
                           <button
                             onClick={() => openLightbox(prop.images)}
                             className="absolute top-3 right-3 px-2.5 py-1 bg-slate-900/80 hover:bg-slate-900 text-white rounded-lg text-xs font-bold flex items-center space-x-1 backdrop-blur-sm shadow-sm"
                           >
                             <Layers className="h-3 w-3" />
-                            <span>{prop.images.length} Photos</span>
+                            <span>{prop.images.filter(i => i.url && !failedImageMap[i.url]).length} Photos</span>
                           </button>
                         )}
 
@@ -595,20 +719,28 @@ export const Properties: React.FC = () => {
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="flex items-center space-x-2 pt-2">
+                        <div className="flex items-center space-x-1.5 pt-2">
                           <button
                             onClick={() => setInspectProperty(prop)}
-                            className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition-colors"
+                            className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs flex items-center justify-center space-x-1 transition-colors"
                           >
                             <Eye className="h-3.5 w-3.5" />
                             <span>Inspect</span>
+                          </button>
+
+                          <button
+                            onClick={() => handleOpenEditProperty(prop)}
+                            className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs border border-slate-200 transition-colors"
+                            title="Edit Listing Details"
+                          >
+                            <Edit3 className="h-3.5 w-3.5" />
                           </button>
 
                           {prop.images && prop.images.length > 0 && (
                             <button
                               onClick={() => downloadAllPropertyPhotosZip(prop)}
                               disabled={downloadingPropertyId === prop.id}
-                              className="px-2.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/80 font-semibold rounded-xl text-xs flex items-center justify-center space-x-1 transition-colors"
+                              className="px-2 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/80 font-semibold rounded-xl text-xs flex items-center justify-center space-x-1 transition-colors"
                               title="Download Complete Photos (ZIP)"
                             >
                               {downloadingPropertyId === prop.id ? (
@@ -616,14 +748,13 @@ export const Properties: React.FC = () => {
                               ) : (
                                 <Download className="h-3.5 w-3.5" />
                               )}
-                              <span className="hidden sm:inline">Photos</span>
                             </button>
                           )}
 
                           {prop.status !== 'APPROVED' && (
                             <button
                               onClick={() => handleReviewAction(prop.id, true)}
-                              className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs flex items-center justify-center space-x-1.5 shadow-sm transition-colors"
+                              className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs flex items-center justify-center space-x-1 shadow-sm transition-colors"
                             >
                               <CheckCircle2 className="h-3.5 w-3.5" />
                               <span>Approve</span>
@@ -639,6 +770,14 @@ export const Properties: React.FC = () => {
                               <XCircle className="h-4 w-4" />
                             </button>
                           )}
+
+                          <button
+                            onClick={() => handleDeleteProperty(prop.id, prop.title)}
+                            className="p-2 bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 border border-rose-200 rounded-xl transition-colors"
+                            title="Delete Property Listing"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -669,21 +808,22 @@ export const Properties: React.FC = () => {
                 <tr key={prop.id} className="hover:bg-slate-50 transition-colors">
                   <td className="p-4">
                     <div className="flex items-center space-x-3">
-                      {prop.images?.[0]?.url ? (
+                      {prop.images?.[0]?.url && !failedImageMap[prop.images[0].url] ? (
                         <img
                           src={prop.images[0].url}
                           alt={prop.title}
+                          onError={() => setFailedImageMap((prev) => ({ ...prev, [prop.images![0].url!]: true }))}
                           className="h-10 w-10 rounded-lg object-cover cursor-pointer"
                           onClick={() => openLightbox(prop.images)}
                         />
                       ) : (
-                        <div className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400">
+                        <div className="h-10 w-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400">
                           <Building2 className="h-5 w-5" />
                         </div>
                       )}
                       <div>
                         <span className="font-bold text-slate-900 block line-clamp-1">{prop.title}</span>
-                        <span className="text-xs text-slate-400">{prop.images?.length || 0} photos</span>
+                        <span className="text-xs text-slate-400">{prop.images?.filter(i => i.url && !failedImageMap[i.url]).length || 0} real photos</span>
                       </div>
                     </div>
                   </td>
@@ -712,18 +852,25 @@ export const Properties: React.FC = () => {
                       {prop.status}
                     </span>
                   </td>
-                  <td className="p-4 text-right space-x-2">
+                  <td className="p-4 text-right space-x-1.5">
                     <button
                       onClick={() => setInspectProperty(prop)}
                       className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold"
                     >
                       Inspect
                     </button>
+                    <button
+                      onClick={() => handleOpenEditProperty(prop)}
+                      className="p-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs border border-slate-200 transition-colors inline-flex items-center"
+                      title="Edit Property Listing"
+                    >
+                      <Edit3 className="h-3.5 w-3.5" />
+                    </button>
                     {prop.images && prop.images.length > 0 && (
                       <button
                         onClick={() => downloadAllPropertyPhotosZip(prop)}
                         disabled={downloadingPropertyId === prop.id}
-                        className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold inline-flex items-center space-x-1"
+                        className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold inline-flex items-center space-x-1"
                         title="Download Complete Photos (ZIP)"
                       >
                         {downloadingPropertyId === prop.id ? (
@@ -731,7 +878,6 @@ export const Properties: React.FC = () => {
                         ) : (
                           <Download className="h-3 w-3" />
                         )}
-                        <span>Photos</span>
                       </button>
                     )}
                     {prop.status !== 'APPROVED' && (
@@ -750,6 +896,13 @@ export const Properties: React.FC = () => {
                         Reject
                       </button>
                     )}
+                    <button
+                      onClick={() => handleDeleteProperty(prop.id, prop.title)}
+                      className="p-1 bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 border border-rose-200 rounded-lg text-xs font-semibold inline-flex items-center"
+                      title="Delete Property Listing"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -763,66 +916,109 @@ export const Properties: React.FC = () => {
         <Modal isOpen={!!inspectProperty} onClose={() => setInspectProperty(null)} title="Property Details & Specifications">
           <div className="space-y-6">
             {/* Gallery */}
-            {inspectProperty.images && inspectProperty.images.length > 0 && (
+            {inspectProperty.images && inspectProperty.images.filter(i => i.url && !failedImageMap[i.url]).length > 0 ? (
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                    Uploaded Photos ({inspectProperty.images.length})
+                    Uploaded Real Photos ({inspectProperty.images.filter(i => i.url && !failedImageMap[i.url]).length})
                   </label>
-                  <button
-                    onClick={() => downloadAllPropertyPhotosZip(inspectProperty)}
-                    disabled={downloadingPropertyId === inspectProperty.id}
-                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-sm transition-all"
-                  >
-                    {downloadingPropertyId === inspectProperty.id ? (
-                      <>
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        <span>{downloadProgress || 'Packing ZIP...'}</span>
-                      </>
-                    ) : (
-                      <>
-                        <FolderDown className="h-3.5 w-3.5" />
-                        <span>Download All Photos (ZIP)</span>
-                      </>
-                    )}
-                  </button>
+                  <div className="flex items-center space-x-2">
+                    <label className="cursor-pointer px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center space-x-1 transition-all border border-slate-200">
+                      {uploadingPropertyId === inspectProperty.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-600" />
+                      ) : (
+                        <Plus className="h-3.5 w-3.5 text-emerald-600" />
+                      )}
+                      <span>Add Photos</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={async (e) => {
+                          await handleImageUpload(inspectProperty.id, e.target.files);
+                        }}
+                      />
+                    </label>
+                    <button
+                      onClick={() => downloadAllPropertyPhotosZip(inspectProperty)}
+                      disabled={downloadingPropertyId === inspectProperty.id}
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-sm transition-all"
+                    >
+                      {downloadingPropertyId === inspectProperty.id ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          <span>{downloadProgress || 'Packing ZIP...'}</span>
+                        </>
+                      ) : (
+                        <>
+                          <FolderDown className="h-3.5 w-3.5" />
+                          <span>Download All Photos (ZIP)</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                  {inspectProperty.images.map((img, idx) => (
+                  {inspectProperty.images.filter(i => i.url && !failedImageMap[i.url]).map((img, idx) => (
                     <div
                       key={img.id}
-                      className="relative h-24 rounded-xl overflow-hidden border border-slate-200 group"
+                      className="relative h-24 rounded-xl overflow-hidden border border-slate-200 group bg-slate-100"
                     >
-                      {img.url ? (
-                        <img
-                          src={img.url}
-                          alt="prop"
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform cursor-pointer"
-                          onClick={() => openLightbox(inspectProperty.images, idx)}
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-slate-100 flex items-center justify-center text-xs text-slate-400">Photo</div>
-                      )}
+                      <img
+                        src={img.url!}
+                        alt="prop"
+                        onError={() => setFailedImageMap((prev) => ({ ...prev, [img.url!]: true }))}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform cursor-pointer"
+                        onClick={() => openLightbox(inspectProperty.images, idx)}
+                      />
                       {img.isPrimary && (
                         <span className="absolute bottom-1 left-1 bg-emerald-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm">
                           Primary
                         </span>
                       )}
-                      {img.url && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            downloadSinglePhoto(img.url!, `${inspectProperty.title}_Photo_${idx + 1}.jpg`);
-                          }}
-                          className="absolute top-1 right-1 p-1 bg-slate-900/70 hover:bg-slate-900 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
-                          title="Download this photo"
-                        >
-                          <Download className="h-3 w-3" />
-                        </button>
-                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          downloadSinglePhoto(img.url!, `${inspectProperty.title}_Photo_${idx + 1}.jpg`);
+                        }}
+                        className="absolute top-1 right-1 p-1 bg-slate-900/70 hover:bg-slate-900 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Download this photo"
+                      >
+                        <Download className="h-3 w-3" />
+                      </button>
                     </div>
                   ))}
                 </div>
+              </div>
+            ) : (
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center space-x-3">
+                  <div className="p-3 bg-white border border-slate-200 rounded-2xl shadow-xs text-slate-400">
+                    <Building2 className="h-7 w-7" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-800">No Physical Photos Attached</h4>
+                    <p className="text-[11px] text-slate-500">Agent submitted listing without real photos. You can upload authentic photos here.</p>
+                  </div>
+                </div>
+                <label className="cursor-pointer px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center space-x-1.5 transition-all shrink-0">
+                  {uploadingPropertyId === inspectProperty.id ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Upload className="h-3.5 w-3.5" />
+                  )}
+                  <span>Upload Real Photos</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={async (e) => {
+                      await handleImageUpload(inspectProperty.id, e.target.files);
+                    }}
+                  />
+                </label>
               </div>
             )}
 
@@ -889,12 +1085,19 @@ export const Properties: React.FC = () => {
             </div>
 
             {/* Action Bar inside modal */}
-            <div className="flex items-center space-x-3 pt-2">
+            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-200">
               <button
                 onClick={() => setInspectProperty(null)}
-                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs"
+                className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs"
               >
                 Close
+              </button>
+              <button
+                onClick={() => handleOpenEditProperty(inspectProperty)}
+                className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex items-center space-x-1.5 border border-slate-200"
+              >
+                <Edit3 className="h-4 w-4 text-slate-600" />
+                <span>Edit Listing</span>
               </button>
               {inspectProperty.status !== 'APPROVED' && (
                 <button
@@ -920,6 +1123,14 @@ export const Properties: React.FC = () => {
                   <span>Reject Listing</span>
                 </button>
               )}
+              <button
+                onClick={() => handleDeleteProperty(inspectProperty.id, inspectProperty.title)}
+                className="py-2.5 px-3 bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 border border-rose-200 rounded-xl text-xs font-bold flex items-center space-x-1"
+                title="Delete Property Listing"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>Delete</span>
+              </button>
             </div>
           </div>
         </Modal>
@@ -1009,6 +1220,146 @@ export const Properties: React.FC = () => {
             </span>
           </div>
         </div>
+      )}
+
+      {/* Edit Property Listing Modal */}
+      {editingProperty && (
+        <Modal
+          isOpen={!!editingProperty}
+          onClose={() => setEditingProperty(null)}
+          title={`Edit Property Listing — ${editingProperty.title}`}
+        >
+          <form onSubmit={handleSavePropertyEdit} className="space-y-4">
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs text-slate-600">
+              Listing ID: <span className="font-mono font-bold text-slate-900">{editingProperty.id}</span>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Property Title</label>
+                <input
+                  type="text"
+                  required
+                  value={editForm.title}
+                  onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:bg-white focus:border-emerald-600"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Price (₹)</label>
+                  <input
+                    type="number"
+                    required
+                    value={editForm.price}
+                    onChange={(e) => setEditForm({ ...editForm, price: Number(e.target.value) })}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:bg-white focus:border-emerald-600 font-mono font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Category</label>
+                  <select
+                    value={editForm.category}
+                    onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:bg-white focus:border-emerald-600"
+                  >
+                    <option value="RESIDENTIAL_RENT">Residential Rent</option>
+                    <option value="RESIDENTIAL_SALE">Residential Sale</option>
+                    <option value="COMMERCIAL_RENT">Commercial Rent</option>
+                    <option value="COMMERCIAL_SALE">Commercial Sale</option>
+                    <option value="LAND_SALE">Land / Plot Sale</option>
+                    <option value="PG_CO_LIVING">PG & Co-Living</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Address / Landmark</label>
+                  <input
+                    type="text"
+                    value={editForm.locationAddress}
+                    onChange={(e) => setEditForm({ ...editForm, locationAddress: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:bg-white focus:border-emerald-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">City</label>
+                  <input
+                    type="text"
+                    value={editForm.locationCity}
+                    onChange={(e) => setEditForm({ ...editForm, locationCity: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:bg-white focus:border-emerald-600"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Description</label>
+                <textarea
+                  rows={3}
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:bg-white focus:border-emerald-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Listing Status</label>
+                <select
+                  value={editForm.status}
+                  onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:bg-white focus:border-emerald-600 font-semibold"
+                >
+                  <option value="APPROVED">APPROVED (Active & Published)</option>
+                  <option value="SUBMITTED">SUBMITTED (Under Review)</option>
+                  <option value="REJECTED">REJECTED (Listing Declined)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Attach / Upload Real Listing Photos</label>
+                <label className="w-full flex flex-col items-center justify-center p-3.5 border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-xl cursor-pointer bg-slate-50 hover:bg-emerald-50/40 transition-colors">
+                  <Upload className="h-5 w-5 text-slate-400 mb-1" />
+                  <span className="text-xs font-bold text-slate-700">Choose Genuine Photos from Computer</span>
+                  <span className="text-[10px] text-slate-400">Uploads directly to server storage</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={async (e) => {
+                      if (editingProperty) {
+                        await handleImageUpload(editingProperty.id, e.target.files);
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-200">
+              <button
+                type="button"
+                onClick={() => setEditingProperty(null)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md transition-colors flex items-center space-x-1.5 disabled:opacity-50"
+              >
+                <Save className="h-4 w-4" />
+                <span>{isSaving ? 'Saving Changes...' : 'Save & Publish Updates'}</span>
+              </button>
+            </div>
+          </form>
+        </Modal>
       )}
     </div>
   );

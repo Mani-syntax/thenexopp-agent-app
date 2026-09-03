@@ -1,7 +1,11 @@
 import axios from 'axios';
 import { AgentSummary, AgentStatus, PropertyListing, PropertyStatus, PaymentRecord, PaymentAnalytics } from '../types';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3000/api/v1' : 'https://api.thenexopp.com/api/v1');
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  (typeof window !== 'undefined'
+    ? `${window.location.protocol}//${window.location.hostname}${window.location.port === '3000' || window.location.port === '80' || window.location.port === '' ? '' : ':3000'}/api/v1`
+    : 'http://localhost:3000/api/v1');
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -18,6 +22,20 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Add 401 response interceptor
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401 && !error.config.url.includes('/auth/admin/login')) {
+      localStorage.removeItem('admin_token');
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  },
+);
 
 export const AdminApiService = {
   // Authentication
@@ -94,6 +112,25 @@ export const AdminApiService = {
     return res.data;
   },
 
+  async deletePayment(paymentId: string) {
+    const res = await api.delete(`/admin/payments/${paymentId}`);
+    return res.data;
+  },
+
+  async getPendingPayments(search?: string): Promise<{ success: boolean; totalPendingAmount: number; totalCount: number; data: import('../types').PendingPaymentRecord[] }> {
+    const res = await api.get('/admin/pending-payments', { params: { search } });
+    return res.data;
+  },
+
+  async settlePendingPayment(earningId: string, transactionId: string, paymentMethod = 'UPI', paymentProofKey?: string) {
+    const res = await api.post(`/admin/pending-payments/${earningId}/settle`, {
+      transactionId,
+      paymentMethod,
+      paymentProofKey,
+    });
+    return res.data;
+  },
+
   // Support Tickets
   async getTickets(params?: {
     status?: string;
@@ -109,5 +146,68 @@ export const AdminApiService = {
     const res = await api.patch(`/admin/tickets/${ticketId}`, data);
     return res.data;
   },
+
+  async updateTicketStatus(ticketId: string, status: string, internalNotes?: string) {
+    const res = await api.patch(`/admin/tickets/${ticketId}`, { status, internalNotes });
+    return res.data;
+  },
+
+  async deleteTicket(ticketId: string) {
+    const res = await api.delete(`/admin/tickets/${ticketId}`);
+    return res.data;
+  },
+
+  // Agent Deletion & Updates
+  async deleteAgent(agentId: string) {
+    const res = await api.delete(`/admin/agents/${agentId}`);
+    return res.data;
+  },
+
+  async updateAgent(agentId: string, data: any) {
+    const res = await api.put(`/admin/agents/${agentId}`, data);
+    return res.data;
+  },
+
+  // KYC Deletion & Updates
+  async deleteKyc(agentId: string) {
+    const res = await api.delete(`/admin/kyc/${agentId}`);
+    return res.data;
+  },
+
+  async updateKyc(agentId: string, data: any) {
+    const res = await api.put(`/admin/kyc/${agentId}`, data);
+    return res.data;
+  },
+
+  // Property Deletion & Updates
+  async deleteProperty(propertyId: string) {
+    const res = await api.delete(`/admin/properties/${propertyId}`);
+    return res.data;
+  },
+
+  async updateProperty(propertyId: string, data: any) {
+    const res = await api.put(`/admin/properties/${propertyId}`, data);
+    return res.data;
+  },
+
+  // Earning / Pending Payment Deletion
+  async deleteEarning(earningId: string) {
+    const res = await api.delete(`/admin/earnings/${earningId}`);
+    return res.data;
+  },
+
+  // Direct Physical File Upload Engine
+  async directUpload(file: File, bucketType: string = 'property-images') {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('bucketType', bucketType);
+    const res = await api.post('/uploads/direct-upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return res.data;
+  },
 };
 
+export default api;

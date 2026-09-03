@@ -33,22 +33,22 @@ export class KycDocumentEntity {
   @Column({ type: 'varchar', length: 10 })
   panMasked: string;
 
-  @Column({ type: 'varchar', length: 255 })
-  aadhaarDocKey: string; // MinIO private key
+  @Column({ type: 'text' })
+  aadhaarDocKey: string; // MinIO private key or Data URL
 
-  @Column({ type: 'varchar', length: 255 })
-  panDocKey: string; // MinIO private key
+  @Column({ type: 'text' })
+  panDocKey: string; // MinIO private key or Data URL
 
-  @Column({ type: 'enum', enum: KycStatus, default: KycStatus.NOT_SUBMITTED })
+  @Column({ type: 'simple-enum', enum: KycStatus, default: KycStatus.NOT_SUBMITTED })
   status: KycStatus;
 
   @Column({ type: 'text', nullable: true })
   rejectionReason: string;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   submittedAt: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   reviewedAt: Date;
 
   @CreateDateColumn()

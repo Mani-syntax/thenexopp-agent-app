@@ -19,7 +19,7 @@ export class RefreshTokenEntity {
   @Column({ type: 'varchar', length: 255, nullable: true })
   deviceInfo: string;
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'datetime' })
   expiresAt: Date;
 
   @Column({ type: 'boolean', default: false })

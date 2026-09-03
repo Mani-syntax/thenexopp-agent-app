@@ -39,6 +39,34 @@ import { SupportTicketEntity } from './database/entities/support-ticket.entity';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
+        const dbType = config.get<string>('DATABASE_TYPE', 'sqlite');
+        const entities = [
+          UserEntity,
+          AgentEntity,
+          AgentProfileEntity,
+          KycDocumentEntity,
+          BankAccountEntity,
+          PropertyEntity,
+          PropertyImageEntity,
+          PropertyVerificationEntity,
+          EarningEntity,
+          PaymentEntity,
+          NotificationEntity,
+          RefreshTokenEntity,
+          AuditLogEntity,
+          SupportTicketEntity,
+        ];
+
+        if (dbType === 'sqlite') {
+          return {
+            type: 'sqlite',
+            database: 'thenexopp_agent_dev.sqlite',
+            entities,
+            synchronize: true,
+            logging: false,
+          };
+        }
+
         const host = config.get<string>('DATABASE_HOST', 'localhost');
         const port = config.get<number>('DATABASE_PORT', 5432);
         const username = config.get<string>('DATABASE_USER', 'thenexopp_user');
@@ -52,23 +80,8 @@ import { SupportTicketEntity } from './database/entities/support-ticket.entity';
           username,
           password,
           database,
-          entities: [
-            UserEntity,
-            AgentEntity,
-            AgentProfileEntity,
-            KycDocumentEntity,
-            BankAccountEntity,
-            PropertyEntity,
-            PropertyImageEntity,
-            PropertyVerificationEntity,
-            EarningEntity,
-            PaymentEntity,
-            NotificationEntity,
-            RefreshTokenEntity,
-            AuditLogEntity,
-            SupportTicketEntity,
-          ],
-          synchronize: true, // Auto migration/sync for development
+          entities,
+          synchronize: true,
           logging: false,
         };
       },

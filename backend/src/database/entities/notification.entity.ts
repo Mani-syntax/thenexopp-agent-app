@@ -22,7 +22,7 @@ export class NotificationEntity {
   @Column({ type: 'varchar', length: 50 })
   type: string; // KYC_APPROVED, KYC_REJECTED, AGENT_APPROVED, PROPERTY_APPROVED, etc.
 
-  @Column({ type: 'jsonb', nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   data: Record<string, any>;
 
   @Column({ type: 'boolean', default: false })

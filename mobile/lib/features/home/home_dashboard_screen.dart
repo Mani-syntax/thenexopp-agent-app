@@ -48,15 +48,15 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
             _kycStatus = profileRes.data['data']['kycStatus'] ?? 'APPROVED';
           }
 
-          if (earningsRes.data['success'] == true) {
-            final summary = earningsRes.data['data']['summary'];
+          if (earningsRes.data != null && earningsRes.data['success'] == true && earningsRes.data['data'] != null) {
+            final summary = earningsRes.data['data']['summary'] ?? {};
             _totalEarnings = (summary['totalEarnings'] ?? 0).toDouble();
             _pendingEarnings = (summary['pendingEarnings'] ?? 0).toDouble();
             _paidAmount = (summary['paidAmount'] ?? 0).toDouble();
           }
 
-          if (propertiesRes.data['success'] == true) {
-            final list = propertiesRes.data['data'] as List;
+          if (propertiesRes.data != null && propertiesRes.data['success'] == true && propertiesRes.data['data'] != null) {
+            final list = propertiesRes.data['data'] as List? ?? [];
             _propertyCount = list.length;
           }
 
@@ -116,7 +116,7 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
             ? const Center(child: CircularProgressIndicator(color: AppColors.primaryEmerald))
             : SingleChildScrollView(
                 physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.fromLTRB(18, 16, 18, 100),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

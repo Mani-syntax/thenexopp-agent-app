@@ -28,7 +28,7 @@ export class AgentProfileEntity {
   @Column({ type: 'varchar', length: 100, nullable: true })
   workPlatform?: string; // e.g. Agent, Driver, Business, Freelancer, etc.
 
-  @Column({ type: 'varchar', length: 500, nullable: true })
+  @Column({ type: 'text', nullable: true })
   profilePhotoUrl: string;
 
   @CreateDateColumn()

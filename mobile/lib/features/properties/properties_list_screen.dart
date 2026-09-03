@@ -107,7 +107,7 @@ class _PropertiesListScreenState extends ConsumerState<PropertiesListScreen> wit
                     )
                   : ListView.builder(
                       physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.fromLTRB(18, 16, 18, 100),
                       itemCount: _properties.length,
                       itemBuilder: (context, index) {
                         final prop = _properties[index];

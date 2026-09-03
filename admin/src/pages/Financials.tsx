@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AdminApiService } from '../services/api';
-import { PaymentRecord, PaymentAnalytics, AgentSummary } from '../types';
+import { adminSocket } from '../services/websocket';
+import { PaymentRecord, PaymentAnalytics, AgentSummary, PendingPaymentRecord } from '../types';
 import {
   Wallet,
   DollarSign,
@@ -13,10 +14,18 @@ import {
   CreditCard,
   User,
   ArrowUpRight,
+  Clock,
+  Trash2,
+  AlertTriangle,
+  Hourglass,
+  ArrowRight,
+  ShieldCheck,
+  Building2,
+  X,
 } from 'lucide-react';
 
 export const Financials: React.FC = () => {
-  const [tab, setTab] = useState<'records' | 'earning' | 'payout'>('records');
+  const [tab, setTab] = useState<'records' | 'pending' | 'payout' | 'earning'>('records');
 
   // Ledger records and analytics
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
@@ -33,7 +42,19 @@ export const Financials: React.FC = () => {
   const [endDate, setEndDate] = useState<string>('');
   const [search, setSearch] = useState<string>('');
 
-  // Agents list for dropdown autofill
+  // Pending payments state
+  const [pendingPayments, setPendingPayments] = useState<PendingPaymentRecord[]>([]);
+  const [totalPendingAmount, setTotalPendingAmount] = useState(0);
+  const [pendingLoading, setPendingLoading] = useState(false);
+  const [pendingSearch, setPendingSearch] = useState('');
+
+  // Settle modal state
+  const [settleTarget, setSettleTarget] = useState<PendingPaymentRecord | null>(null);
+  const [settleTxnId, setSettleTxnId] = useState('');
+  const [settleMethod, setSettleMethod] = useState('UPI');
+  const [settleLoading, setSettleLoading] = useState(false);
+
+  // Agents list for dropdown autofill (filtered for KYC approved only)
   const [agents, setAgents] = useState<AgentSummary[]>([]);
 
   // Earning form state
@@ -49,10 +70,29 @@ export const Financials: React.FC = () => {
 
   const [formLoading, setFormLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+  const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchPayments();
+    fetchPendingPayments();
     fetchAgents();
+
+    const handlePaymentUpdated = () => {
+      fetchPayments();
+      fetchPendingPayments();
+    };
+
+    adminSocket.on('payment.created', handlePaymentUpdated);
+    adminSocket.on('payment.deleted', handlePaymentUpdated);
+    adminSocket.on('pending_payments.updated', handlePaymentUpdated);
+    adminSocket.on('earning.created', handlePaymentUpdated);
+
+    return () => {
+      adminSocket.off('payment.created', handlePaymentUpdated);
+      adminSocket.off('payment.deleted', handlePaymentUpdated);
+      adminSocket.off('pending_payments.updated', handlePaymentUpdated);
+      adminSocket.off('earning.created', handlePaymentUpdated);
+    };
   }, [dateFilter, startDate, endDate]);
 
   const getDateRange = () => {
@@ -98,6 +138,18 @@ export const Financials: React.FC = () => {
     setLoading(false);
   };
 
+  const fetchPendingPayments = async () => {
+    setPendingLoading(true);
+    try {
+      const res = await AdminApiService.getPendingPayments(pendingSearch.trim() || undefined);
+      if (res.success) {
+        setPendingPayments(res.data);
+        setTotalPendingAmount(res.totalPendingAmount || 0);
+      }
+    } catch (_) {}
+    setPendingLoading(false);
+  };
+
   const fetchAgents = async () => {
     try {
       const res = await AdminApiService.getAgents();
@@ -107,9 +159,19 @@ export const Financials: React.FC = () => {
     } catch (_) {}
   };
 
+  // Filter for KYC approved agents only
+  const approvedAgents = agents.filter(
+    (a) => a.status === 'APPROVED' || a.kycStatus === 'APPROVED',
+  );
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     fetchPayments();
+  };
+
+  const handlePendingSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    fetchPendingPayments();
   };
 
   const handleAddEarning = async (e: React.FormEvent) => {
@@ -124,6 +186,7 @@ export const Financials: React.FC = () => {
       setEarningTitle('');
       setEarningAmount('');
       fetchPayments();
+      fetchPendingPayments();
     } catch (err: any) {
       alert(err.message || 'Failed to add earning');
     } finally {
@@ -143,10 +206,79 @@ export const Financials: React.FC = () => {
       setPayoutAmount('');
       setTxnId('');
       fetchPayments();
+      fetchPendingPayments();
     } catch (err: any) {
       alert(err.message || 'Failed to record payment');
     } finally {
       setFormLoading(false);
+    }
+  };
+
+  const handleOpenSettle = (item: PendingPaymentRecord) => {
+    setSettleTarget(item);
+    setSettleTxnId(`UTR${Date.now().toString().slice(-8)}`);
+    setSettleMethod('UPI');
+  };
+
+  const handleConfirmSettle = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!settleTarget) return;
+
+    setSettleLoading(true);
+    try {
+      const res = await AdminApiService.settlePendingPayment(
+        settleTarget.id,
+        settleTxnId.trim(),
+        settleMethod,
+      );
+      if (res.success) {
+        setSuccessMsg(
+          `Payment of ₹${Number(settleTarget.amount).toLocaleString('en-IN')} for "${settleTarget.title}" settled successfully (Ref: ${settleTxnId})!`,
+        );
+        setSettleTarget(null);
+        fetchPayments();
+        fetchPendingPayments();
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to settle pending payment');
+    } finally {
+      setSettleLoading(false);
+    }
+  };
+
+  const handleDeletePayment = async (paymentId: string, txnId: string, amount: number) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to permanently delete transaction "${txnId}" (₹${Number(amount).toLocaleString('en-IN')})?\n\nThis will update total expenditures and ledger records in real-time.`,
+    );
+    if (!confirmed) return;
+
+    setDeleteLoadingId(paymentId);
+    try {
+      const res = await AdminApiService.deletePayment(paymentId);
+      if (res.success) {
+        setSuccessMsg(`Transaction "${txnId}" deleted successfully.`);
+        fetchPayments();
+        fetchPendingPayments();
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete payment transaction');
+    } finally {
+      setDeleteLoadingId(null);
+    }
+  };
+
+  const handleDeletePendingPayment = async (earningId: string, title: string, amount: number) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to cancel and delete pending listing reward "${title}" (₹${Number(amount).toLocaleString('en-IN')})?\n\nThis will remove the pending payout from both the admin queue and the agent's app.`,
+    );
+    if (!confirmed) return;
+
+    try {
+      await AdminApiService.deleteEarning(earningId);
+      setSuccessMsg(`Pending reward "${title}" cancelled and deleted.`);
+      fetchPendingPayments();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete pending payment');
     }
   };
 
@@ -166,13 +298,13 @@ export const Financials: React.FC = () => {
       <div>
         <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Earnings & Payout Ledger</h2>
         <p className="text-slate-500 text-sm mt-1">
-          Complete database of payments made to agents, daily/weekly expenditure analytics, and transaction logs
+          Complete database of payments made to agents, pending listing rewards, daily expenditures, and transaction logs
         </p>
       </div>
 
       {successMsg && (
         <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl text-sm font-medium flex items-center space-x-2">
-          <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+          <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
           <span>{successMsg}</span>
         </div>
       )}
@@ -191,25 +323,27 @@ export const Financials: React.FC = () => {
         </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-2">
-          <div className="flex items-center justify-between text-xs font-semibold text-emerald-700 uppercase">
+          <div className="flex items-center justify-between text-xs font-semibold text-amber-700 uppercase">
+            <span>Pending Payouts Queue</span>
+            <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
+              <Hourglass className="h-4 w-4" />
+            </div>
+          </div>
+          <p className="text-2xl font-extrabold text-amber-700">₹{Number(totalPendingAmount).toLocaleString('en-IN')}</p>
+          <span className="text-[11px] text-amber-600 block font-medium">
+            {pendingPayments.length} Listing Rewards Awaiting Settle
+          </span>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-2">
+          <div className="flex items-center justify-between text-xs font-semibold text-slate-700 uppercase">
             <span>Today's Spent (Daily)</span>
             <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
               <Calendar className="h-4 w-4" />
             </div>
           </div>
           <p className="text-2xl font-extrabold text-emerald-700">₹{Number(analytics.todaySpent).toLocaleString('en-IN')}</p>
-          <span className="text-[11px] text-emerald-600/80 block font-medium">Distributed today</span>
-        </div>
-
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-2">
-          <div className="flex items-center justify-between text-xs font-semibold text-slate-700 uppercase">
-            <span>This Week's Spent</span>
-            <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
-              <CreditCard className="h-4 w-4" />
-            </div>
-          </div>
-          <p className="text-2xl font-extrabold text-slate-900">₹{Number(analytics.thisWeekSpent).toLocaleString('en-IN')}</p>
-          <span className="text-[11px] text-slate-400 block font-medium">Last 7 days total</span>
+          <span className="text-[11px] text-slate-400 block font-medium">Distributed today</span>
         </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-2">
@@ -225,7 +359,7 @@ export const Financials: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-slate-200 space-x-8">
+      <div className="flex flex-wrap border-b border-slate-200 gap-x-8 gap-y-2">
         <button
           onClick={() => { setTab('records'); setSuccessMsg(''); }}
           className={`pb-3 font-bold text-sm transition-colors border-b-2 ${
@@ -233,6 +367,19 @@ export const Financials: React.FC = () => {
           }`}
         >
           Payment Records & Ledger ({payments.length})
+        </button>
+        <button
+          onClick={() => { setTab('pending'); setSuccessMsg(''); }}
+          className={`pb-3 font-bold text-sm transition-colors border-b-2 flex items-center space-x-2 ${
+            tab === 'pending' ? 'border-amber-500 text-amber-700' : 'border-transparent text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          <span>Pending Payments</span>
+          {pendingPayments.length > 0 && (
+            <span className="px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-800 font-bold border border-amber-300">
+              {pendingPayments.length}
+            </span>
+          )}
         </button>
         <button
           onClick={() => { setTab('payout'); setSuccessMsg(''); }}
@@ -333,16 +480,17 @@ export const Financials: React.FC = () => {
                   <th className="p-4">Payment Method</th>
                   <th className="p-4">Transferred Date & Time</th>
                   <th className="p-4">Status</th>
+                  <th className="p-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-slate-400">Loading payment ledger from database...</td>
+                    <td colSpan={7} className="py-8 text-center text-slate-400">Loading payment ledger from database...</td>
                   </tr>
                 ) : filteredPayments.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-slate-400">No payment records found matching criteria.</td>
+                    <td colSpan={7} className="py-8 text-center text-slate-400">No payment records found matching criteria.</td>
                   </tr>
                 ) : (
                   filteredPayments.map((payment) => (
@@ -365,19 +513,172 @@ export const Financials: React.FC = () => {
                           {payment.paymentMethod}
                         </span>
                       </td>
-                      <td className="p-4 text-xs text-slate-600">
-                        {new Date(payment.paidAt).toLocaleDateString('en-IN', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        })}{' '}
-                        • {new Date(payment.paidAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      <td className="p-4 text-xs">
+                        <div className="font-semibold text-slate-800">
+                          {new Date(payment.paidAt).toLocaleDateString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                        </div>
+                        <div className="text-[11px] text-emerald-700 font-bold flex items-center space-x-1 mt-0.5">
+                          <Clock className="h-3 w-3 inline text-emerald-600" />
+                          <span>
+                            {new Date(payment.paidAt).toLocaleTimeString('en-IN', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              hour12: true,
+                            })}
+                          </span>
+                        </div>
                       </td>
                       <td className="p-4">
                         <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center space-x-1 w-max">
                           <CheckCircle2 className="h-3 w-3" />
                           <span>COMPLETED</span>
                         </span>
+                      </td>
+                      <td className="p-4 text-right">
+                        <button
+                          onClick={() => handleDeletePayment(payment.id, payment.transactionId, payment.amount)}
+                          disabled={deleteLoadingId === payment.id}
+                          className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-xl border border-transparent hover:border-rose-200 transition-colors disabled:opacity-50 inline-flex items-center space-x-1"
+                          title="Delete Transaction Record"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="text-xs font-semibold">Delete</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : tab === 'pending' ? (
+        <div className="space-y-4">
+          {/* Top Pending Payments Header & Search */}
+          <div className="bg-amber-50/60 border border-amber-200/80 rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center space-x-2">
+                <Hourglass className="h-5 w-5 text-amber-700" />
+                <h3 className="text-base font-bold text-amber-900">Pending Listing Commissions & Payments</h3>
+              </div>
+              <p className="text-xs text-amber-800">
+                When an agent uploads a property/business listing and it is approved by Admin, reward commissions reflect here and in the agent's app as Pending Payouts until verified and disbursed.
+              </p>
+            </div>
+
+            <div className="flex items-center space-x-2 shrink-0">
+              <button
+                onClick={fetchPendingPayments}
+                className="p-2.5 bg-white border border-amber-200 rounded-xl text-amber-900 hover:bg-amber-50 transition-colors shadow-xs"
+                title="Refresh Pending List"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Search Bar for Pending Payments */}
+          <form onSubmit={handlePendingSearchSubmit} className="relative">
+            <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search by agent name, mobile number, property listing title, or reason..."
+              value={pendingSearch}
+              onChange={(e) => setPendingSearch(e.target.value)}
+              className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-24 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+            />
+            <button
+              type="submit"
+              className="absolute right-2 top-2 px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold transition-colors"
+            >
+              Search
+            </button>
+          </form>
+
+          {/* Pending Payments Table */}
+          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                <tr>
+                  <th className="p-4">Agent Partner</th>
+                  <th className="p-4">Listing / Commission Details</th>
+                  <th className="p-4">Pending Amount</th>
+                  <th className="p-4">Earned Date</th>
+                  <th className="p-4">Approval Status</th>
+                  <th className="p-4 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {pendingLoading ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-slate-400">Loading pending payment requests...</td>
+                  </tr>
+                ) : pendingPayments.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-slate-400">
+                      <div className="flex flex-col items-center justify-center space-y-1 py-4">
+                        <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+                        <span className="font-semibold text-slate-700">All pending payments are settled!</span>
+                        <span className="text-xs text-slate-400">Approved property listings and rewards will appear here automatically.</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  pendingPayments.map((item) => (
+                    <tr key={item.id} className="hover:bg-amber-50/40 transition-colors">
+                      <td className="p-4">
+                        <div className="font-semibold text-slate-900">{item.agent?.fullName || 'Agent Partner'}</div>
+                        <div className="text-xs text-slate-500">+91 {item.agent?.mobileNumber}</div>
+                        {item.agent?.areaLocation && (
+                          <div className="text-[11px] text-slate-400">{item.agent.areaLocation}</div>
+                        )}
+                      </td>
+                      <td className="p-4">
+                        <div className="font-semibold text-slate-900">{item.title}</div>
+                        {item.propertyTitle && (
+                          <div className="text-xs text-emerald-700 flex items-center space-x-1 mt-0.5">
+                            <Building2 className="h-3 w-3" />
+                            <span>Listing: {item.propertyTitle}</span>
+                          </div>
+                        )}
+                      </td>
+                      <td className="p-4 font-extrabold text-amber-700 text-base">
+                        ₹{Number(item.amount).toLocaleString('en-IN')}
+                      </td>
+                      <td className="p-4 text-xs text-slate-600">
+                        {new Date(item.earnedDate).toLocaleDateString('en-IN', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </td>
+                      <td className="p-4">
+                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 flex items-center space-x-1 w-max">
+                          <Hourglass className="h-3 w-3" />
+                          <span>PENDING PAYOUT</span>
+                        </span>
+                      </td>
+                      <td className="p-4 text-right">
+                        <div className="flex items-center justify-end space-x-2">
+                          <button
+                            onClick={() => handleOpenSettle(item)}
+                            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm hover:shadow-md flex items-center space-x-1.5"
+                          >
+                            <CreditCard className="h-3.5 w-3.5" />
+                            <span>Settle & Pay</span>
+                          </button>
+                          <button
+                            onClick={() => handleDeletePendingPayment(item.id, item.title, item.amount)}
+                            className="p-2 bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 rounded-xl text-xs font-bold border border-rose-200 transition-colors"
+                            title="Cancel & Delete Pending Reward"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -389,20 +690,35 @@ export const Financials: React.FC = () => {
       ) : tab === 'earning' ? (
         <form onSubmit={handleAddEarning} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4 max-w-2xl">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Select Agent Partner</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-semibold text-slate-700">Select KYC Approved Agent Partner</label>
+              <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                {approvedAgents.length} KYC Approved
+              </span>
+            </div>
             <select
               value={earningAgentId}
               onChange={(e) => setEarningAgentId(e.target.value)}
               required
               className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20"
             >
-              <option value="">-- Choose Agent --</option>
-              {agents.map((a) => (
+              <option value="">
+                {approvedAgents.length === 0
+                  ? '-- No KYC Approved Agents Found --'
+                  : '-- Choose KYC Approved Agent --'}
+              </option>
+              {approvedAgents.map((a) => (
                 <option key={a.id} value={a.id}>
-                  {a.fullName || 'Unfilled'} (+91 {a.mobileNumber}) - ID: {a.id.substring(0, 8)}...
+                  {a.fullName} (+91 {a.mobileNumber}) - ID: {a.id.substring(0, 8)}... [KYC: APPROVED]
                 </option>
               ))}
             </select>
+            {approvedAgents.length === 0 && (
+              <p className="text-xs text-amber-600 mt-1.5 flex items-center space-x-1">
+                <AlertTriangle className="h-3.5 w-3.5 inline" />
+                <span>Go to KYC Verification tab to review and approve agent documents.</span>
+              </p>
+            )}
           </div>
 
           <div>
@@ -442,7 +758,7 @@ export const Financials: React.FC = () => {
 
           <button
             type="submit"
-            disabled={formLoading}
+            disabled={formLoading || (!earningAgentId && approvedAgents.length === 0)}
             className="w-full bg-emerald-600 hover:bg-emerald-700 font-semibold py-3 rounded-xl text-white shadow-md shadow-emerald-600/15 transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
           >
             <Send className="h-4 w-4" />
@@ -452,20 +768,35 @@ export const Financials: React.FC = () => {
       ) : (
         <form onSubmit={handleRecordPayout} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4 max-w-2xl">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Select Agent Partner</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-semibold text-slate-700">Select KYC Approved Agent Partner</label>
+              <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                {approvedAgents.length} KYC Approved
+              </span>
+            </div>
             <select
               value={payoutAgentId}
               onChange={(e) => setPayoutAgentId(e.target.value)}
               required
               className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20"
             >
-              <option value="">-- Choose Agent --</option>
-              {agents.map((a) => (
+              <option value="">
+                {approvedAgents.length === 0
+                  ? '-- No KYC Approved Agents Found --'
+                  : '-- Choose KYC Approved Agent --'}
+              </option>
+              {approvedAgents.map((a) => (
                 <option key={a.id} value={a.id}>
-                  {a.fullName || 'Unfilled'} (+91 {a.mobileNumber}) - ID: {a.id.substring(0, 8)}...
+                  {a.fullName} (+91 {a.mobileNumber}) - ID: {a.id.substring(0, 8)}... [KYC: APPROVED]
                 </option>
               ))}
             </select>
+            {approvedAgents.length === 0 && (
+              <p className="text-xs text-amber-600 mt-1.5 flex items-center space-x-1">
+                <AlertTriangle className="h-3.5 w-3.5 inline" />
+                <span>Go to KYC Verification tab to review and approve agent documents.</span>
+              </p>
+            )}
           </div>
 
           <div>
@@ -519,13 +850,101 @@ export const Financials: React.FC = () => {
 
           <button
             type="submit"
-            disabled={formLoading}
+            disabled={formLoading || (!payoutAgentId && approvedAgents.length === 0)}
             className="w-full bg-emerald-600 hover:bg-emerald-700 font-semibold py-3 rounded-xl text-white shadow-md shadow-emerald-600/15 transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
           >
             <Wallet className="h-4 w-4" />
             <span>{formLoading ? 'Recording Transaction...' : 'Record Payout & Push Live Notification'}</span>
           </button>
         </form>
+      )}
+
+      {/* Settle Pending Payment Modal */}
+      {settleTarget && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center space-x-2">
+                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+                  <CreditCard className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">Settle Pending Listing Reward</h3>
+                  <p className="text-xs text-slate-500">Transfer reward to agent partner</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSettleTarget(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Target Details Card */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Agent Partner:</span>
+                <span className="font-bold text-slate-900">{settleTarget.agent?.fullName} (+91 {settleTarget.agent?.mobileNumber})</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Listing Reference:</span>
+                <span className="font-semibold text-slate-800">{settleTarget.title}</span>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t border-slate-200">
+                <span className="text-slate-700 font-bold">Reward Amount:</span>
+                <span className="text-lg font-extrabold text-emerald-700">₹{Number(settleTarget.amount).toLocaleString('en-IN')}</span>
+              </div>
+            </div>
+
+            {/* Settle Form */}
+            <form onSubmit={handleConfirmSettle} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Transaction Ref / Bank UTR ID</label>
+                <input
+                  type="text"
+                  required
+                  value={settleTxnId}
+                  onChange={(e) => setSettleTxnId(e.target.value)}
+                  placeholder="e.g. UTR987654321 or UPI123456"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Payment Method</label>
+                <select
+                  value={settleMethod}
+                  onChange={(e) => setSettleMethod(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20"
+                >
+                  <option value="UPI">UPI Instant Transfer</option>
+                  <option value="NEFT">NEFT Bank Transfer</option>
+                  <option value="IMPS">IMPS Immediate Payment</option>
+                  <option value="RTGS">RTGS Real-Time Gross Settlement</option>
+                </select>
+              </div>
+
+              <div className="flex items-center space-x-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setSettleTarget(null)}
+                  className="flex-1 py-3 border border-slate-200 rounded-xl text-slate-700 font-semibold text-sm hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={settleLoading}
+                  className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm shadow-md shadow-emerald-600/20 transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
+                >
+                  <ShieldCheck className="h-4 w-4" />
+                  <span>{settleLoading ? 'Settling...' : 'Confirm & Disburse'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
